@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+{% extends 'ms/home/initial/initial.html' %}
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Список транзакций</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .filter-container .btn {
+            width: 100%;
+        }
+        .modal-body {
+            text-align: center;
+        }
+    </style>
+
+</head>
+<body>
+<div class="container mt-5">
+    <h1>Список транзакций</h1>
+    <div class="d-flex justify-content-between mb-4">
+        <button class="btn btn-primary" data-bs-target="#transactionModal" data-bs-toggle="modal"
+                onclick="openTransactionModal()">Добавить транзакцию
+        </button>
+        <button class="btn btn-secondary" data-bs-target="#filterTypeModal" data-bs-toggle="modal">Фильтр по времени
+        </button>
+    </div>
+
+    <!-- Модальное окно выбора типа фильтра -->
+    <div aria-hidden="true" aria-labelledby="filterTypeModalLabel" class="modal fade" id="filterTypeModal"
+         tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filterTypeModalLabel">Выберите тип фильтра</h5>
+                    <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <button class="btn btn-outline-primary w-100 mb-3" onclick="openFilterModal('range')">Диапазон
+                    </button>
+                    <button class="btn btn-outline-primary w-100 mb-3" onclick="openFilterModal('year')">Год</button>
+                    <button class="btn btn-outline-primary w-100" onclick="openFilterModal('month')">Месяц</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно выбора времени -->
+    <div aria-hidden="true" aria-labelledby="filterModalLabel" class="modal fade" id="filterModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filterModalLabel">Фильтр транзакций</h5>
+                    <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                </div>
+                <div class="modal-body" id="filterContent">
+                    <!-- Контент фильтров -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
+                    <button class="btn btn-primary" id="applyFilterButton" onclick="applyFilter()">Применить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Категория</th>
+            <th>Счёт</th>
+            <th>Сумма</th>
+            <th>Дата</th>
+            <th>Описание</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for transaction in transactions %}
+        <tr>
+            <td>{{ transaction.id }}</td>
+            <td>{{ transaction.category }}</td>
+            <td>{{ transaction.account }}</td>
+            <td>{{ transaction.amount }}</td>
+            <td>{{ transaction.transaction_date }}</td>
+            <td>{{ transaction.description }}</td>
+            <td>
+                <button class="btn btn-warning btn-sm" data-bs-target="#transactionModal" data-bs-toggle="modal"
+                        onclick="openTransactionModal({{ transaction.id }})">Редактировать
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTransaction({{ transaction.id }})">Удалить</button>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Модальное окно -->
+<div aria-hidden="true" aria-labelledby="transactionModalLabel" class="modal fade" id="transactionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionModalLabel">Добавить/Редактировать транзакцию</h5>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body">
+                <div id="transactionFormContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let currentFilterType = null; // Хранение текущего типа фильтра
+
+// Открытие модального окна фильтров
+function openFilterModal(filterType) {
+    currentFilterType = filterType;
+
+    let filterContent = '';
+
+    if (filterType === 'range') {
+        filterContent = `
+            <div class="mb-3">
+                <label for="start_date" class="form-label">От:</label>
+                <input type="date" id="start_date" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="end_date" class="form-label">До:</label>
+                <input type="date" id="end_date" class="form-control">
+            </div>
+        `;
+    } else if (filterType === 'year') {
+        const currentYear = new Date().getFullYear();
+        filterContent = `
+            <div class="d-flex justify-content-center align-items-center">
+                <button class="btn btn-secondary me-3" onclick="changeYear(-1)">←</button>
+                <span id="filter_year" class="fw-bold">${currentYear}</span>
+                <button class="btn btn-secondary ms-3" onclick="changeYear(1)">→</button>
+            </div>
+        `;
+    } else if (filterType === 'month') {
+        const monthNames = [
+            "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+        ];
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+
+        filterContent = `
+            <div class="d-flex justify-content-center align-items-center">
+                <button class="btn btn-secondary me-3" onclick="changeMonth(-1)">←</button>
+                <span id="filter_month" class="fw-bold">${monthNames[currentMonth]} ${currentYear}</span>
+                <button class="btn btn-secondary ms-3" onclick="changeMonth(1)">→</button>
+            </div>
+        `;
+    }
+
+    document.getElementById('filterContent').innerHTML = filterContent;
+
+    // Закрываем модальное окно выбора типа фильтра и открываем окно фильтров
+    const filterTypeModal = bootstrap.Modal.getInstance(document.getElementById('filterTypeModal'));
+    filterTypeModal.hide();
+    const filterModal = new bootstrap.Modal(document.getElementById('filterModal'));
+    filterModal.show();
+}
+
+// Изменение года в фильтре
+function changeYear(offset) {
+    const yearElement = document.getElementById('filter_year');
+    const currentYear = parseInt(yearElement.textContent, 10);
+    yearElement.textContent = currentYear + offset;
+}
+
+// Изменение месяца в фильтре
+function changeMonth(offset) {
+    const monthNames = [
+        "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+        "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+    ];
+    const monthElement = document.getElementById('filter_month');
+    const [currentMonthName, currentYear] = monthElement.textContent.split(' ');
+
+    let monthIndex = monthNames.indexOf(currentMonthName) + offset;
+    let year = parseInt(currentYear, 10);
+
+    if (monthIndex < 0) {
+        monthIndex = 11;
+        year -= 1;
+    } else if (monthIndex > 11) {
+        monthIndex = 0;
+        year += 1;
+    }
+
+    monthElement.textContent = `${monthNames[monthIndex]} ${year}`;
+}
+
+// Применение фильтра
+function applyFilter() {
+    let filterParams = {};
+
+    // Собираем данные для фильтра
+    if (currentFilterType === 'range') {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+
+        if (!startDate || !endDate) {
+            alert("Пожалуйста, укажите оба значения для диапазона.");
+            return;
+        }
+
+        filterParams = { start_date: startDate, end_date: endDate };
+    } else if (currentFilterType === 'year') {
+        const year = document.getElementById('filter_year').textContent;
+        filterParams = { year };
+    } else if (currentFilterType === 'month') {
+        const [monthName, year] = document.getElementById('filter_month').textContent.split(' ');
+        const monthNames = [
+            "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+        ];
+        const monthIndex = monthNames.indexOf(monthName) + 1;
+
+        filterParams = { year, month: monthIndex };
+    }
+
+    console.log("Параметры фильтра:", filterParams);
+
+    // Выполняем запрос на сервер
+    fetch(`/initial/transaction/filter/?${new URLSearchParams(filterParams)}`)
+        .then(response => {
+            if (!response.ok) throw new Error(`Ошибка сети: ${response.statusText}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateTransactionList(data.transactions);
+            } else {
+                alert(`Ошибка фильтрации: ${data.error || 'Неизвестная ошибка'}`);
+            }
+        })
+        .catch(err => {
+            console.error("Ошибка выполнения фильтрации:", err);
+            alert("Произошла ошибка при выполнении фильтрации.");
+        });
+}
+
+function updateTransactionList(transactions) {
+    const transactionTableBody = document.querySelector('tbody');
+    if (!transactionTableBody) {
+        console.error("Тело таблицы не найдено!");
+        return;
+    }
+
+    // Очистить текущие строки таблицы
+    transactionTableBody.innerHTML = '';
+
+    // Добавить новые строки
+    transactions.forEach(tx => {
+        // Обработка категории
+        let categoryName = 'Не указана';
+        if (typeof tx.category === 'string') {
+            categoryName = tx.category;
+        } else if (tx.category?.name) {
+            categoryName = tx.category.name;
+        }
+
+        // Обработка счета и валюты
+        let accountName = 'Не указан';
+        let accountCurrency = 'Не указана'; // Для хранения информации о валюте
+        if (tx.account) {
+            accountName = tx.account.name || 'Не указан';
+            accountCurrency = tx.account.currency || 'Не указана'; // Используем currency, а не currency_code
+        }
+
+        // Форматирование даты
+        const formattedDate = tx.transaction_date
+            ? formatDate(tx.transaction_date)
+            : '-';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${tx.id || '-'}</td>
+            <td>${categoryName}</td>
+            <td>${accountName} (${accountCurrency})</td>  <!-- Отображаем валюту счета -->
+            <td>${tx.amount || '-'}</td>
+            <td>${formattedDate}</td>
+            <td>${tx.description || 'None'}</td>
+            <td>
+                <button class="btn btn-warning btn-sm" data-bs-target="#transactionModal" data-bs-toggle="modal"
+                        onclick="openTransactionModal(${tx.id})">Редактировать</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTransaction(${tx.id})">Удалить</button>
+            </td>
+        `;
+        transactionTableBody.appendChild(row);
+    });
+}
+
+// Функция для форматирования даты
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
+    return date.toLocaleDateString('ru-RU', options);
+}
+
+
+
+
+
+
+
+
+            function updateChartWithData(data) {
+                // Логика обновления данных диаграммы (например, для Chart.js)
+                const chart = Chart.getChart("chart");
+                if (chart) {
+                    chart.data = data;
+                    chart.update();
+                }
+            }
+
+            // Первичная инициализация
+            document.addEventListener("DOMContentLoaded", () => {
+                updateYearDisplay();
+                updateMonthDisplay();
+                fetchDataAndUpdateChart({ year: currentDate.getFullYear(), month: currentDate.getMonth() + 1 });
+            });
+
+
+            function openTransactionModal(transactionId = null) {
+            const url = transactionId
+                ? `/initial/transaction/${transactionId}/update/`
+                : `/initial/transaction/create/`;
+
+            fetch(url)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('transactionFormContent').innerHTML = data;
+                    document.getElementById('transactionForm').onsubmit = function (event) {
+                        event.preventDefault();
+                        saveTransaction(transactionId);
+                    };
+                });
+        }
+
+        function saveTransaction(transactionId) {
+            const form = document.getElementById('transactionForm');
+            const url = transactionId
+                ? `/initial/transaction/${transactionId}/update/`
+                : `/initial/transaction/create/`;
+
+            const formData = new FormData(form);
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + JSON.stringify(data.errors));
+                    }
+                });
+        }
+
+        function deleteTransaction(transactionId) {
+            if (confirm('Вы уверены, что хотите удалить транзакцию?')) {
+                fetch(`/initial/transaction/${transactionId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Ошибка: ' + data.error);
+                        }
+                    });
+            }
+        }
+
+</script>
+</body>
+</html>
+{% endblock %}

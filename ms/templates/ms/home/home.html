@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <style>
+        body {
+         color: pink;
+         text-align: center;
+         }
+
+    </style>
+</head>
+<body>
+<h1>Hello, {{ user.username|default:'Guest' }}</h1>
+
+<p> Welcome to the Our site</p>
+<div>
+    {% if user.is_authenticated %}
+    <form action="{% url 'logout' %}" method="post">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+
+    {% else %}
+    <form action="{% url 'signup' %}">
+        <button href="{% url 'signup' %}">Sign Up</button>
+    </form>
+    <form action="{% url 'login' %}">
+        <button>Login</button>
+    </form>
+
+    {% endif %}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Категория</th>
+            <th>Счет</th>
+            <th>Сумма</th>
+            <th>Описание</th>
+        </tr>
+    </thead>
+    <tbody id="transactionTableBody">
+        {% for tx in transactions %}
+        <tr>
+            <td>{{ tx.transaction_date }}</td>
+            <td>{{ tx.category.name }}</td>
+            <td>{{ tx.account.name }}</td>
+            <td>{{ tx.amount }}</td>
+            <td>{{ tx.description|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</body>
+</html>
