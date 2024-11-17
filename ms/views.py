@@ -26,16 +26,12 @@ def dashboard(request):
 
 
 def home(request):
-    return render(request, "ms/home/home.html")
+    return render(request, "ms/home/index.html")
 
 
 def initial_page(request):
     return render(request, "ms/home/initial/initial.html")
 
-
-def logout_view(request):
-    logout(request)  # Выход из аккаунта
-    return JsonResponse({'success': True})  # Или редирект на страницу входа
 
 
 @login_required

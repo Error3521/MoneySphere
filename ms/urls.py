@@ -1,10 +1,13 @@
 from django.urls import path
 from . import views
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', views.home, name="home"),
     path("signup/", views.SignUp.as_view(), name="signup"),
-    path("initial/accounts", views.initial_page, name="initial_page"),
+    path("initial/", views.initial_page, name="initial_page"),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+
 
     path("initial/categories/", views.categories_combined_view, name="categories"),
     path('initial/categories/create/', views.create_category, name='create_category'),
