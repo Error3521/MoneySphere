@@ -99,7 +99,9 @@ def create_category(request):
 
             category = form.save(commit=False)
             category.user = request.user
+            category.value = 0  # Устанавливаем значение value программно, например, на 0
             category.save()
+
             return JsonResponse({"success": True})
 
     return JsonResponse({"success": False, "error": "Ошибка при создании категории."})
@@ -111,14 +113,16 @@ def update_category(request, category_name):
         try:
             category = Category.objects.get(name=category_name, user=request.user)
             category.name = request.POST.get("name")
-            category.value = request.POST.get("value")
             category.color = request.POST.get("color")
             category.is_expense = request.POST.get("is_expense") == "on"
+            category.value = category.value  
+
             category.save()
 
             return JsonResponse({"success": True})
         except Category.DoesNotExist:
             return JsonResponse({"success": False, "error": "Категория не найдена."})
+
 
 
 def get_category_data(request, category_name):

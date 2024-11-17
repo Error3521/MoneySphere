@@ -31,7 +31,7 @@ class CustomUserChangeForm(UserChangeForm):
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ['name', 'value', 'color', 'is_expense']  # Добавляем поле is_expense
+        fields = ['name', 'color', 'is_expense']  # Добавляем поле is_expense
         widgets = {
             'is_expense': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }

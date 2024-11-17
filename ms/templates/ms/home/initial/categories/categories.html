@@ -403,51 +403,47 @@ function changeMonth(direction) {
     </div>
 
 
-    <!-- Модальное окно для добавления категории -->
-    <div class="modal" id="createCategoryModal">
-        <div class="modal-content">
-            <span class="close" id="closeModal">&times;</span>
-            <h2>Добавить новую категорию</h2>
-            <form id="categoryForm" method="POST">
-                {% csrf_token %}
-                <label for="categoryName">Название категории:</label>
-                <input id="categoryName" name="name" required type="text"><br><br>
+<!-- Модальное окно для добавления категории -->
+<div class="modal" id="createCategoryModal">
+    <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2>Добавить новую категорию</h2>
+        <form id="categoryForm" method="POST">
+            {% csrf_token %}
+            <label for="categoryName">Название категории:</label>
+            <input id="categoryName" name="name" required type="text"><br><br>
 
-                <label for="categoryValue">Числовое значение:</label>
-                <input id="categoryValue" name="value" required type="number"><br><br>
+            <label for="categoryColor">Цвет:</label>
+            <input id="categoryColor" name="color" required type="color"><br><br>
 
-                <label for="categoryColor">Цвет:</label>
-                <input id="categoryColor" name="color" required type="color"><br><br>
+            <label for="is_expense">Это расход?</label>
+            <input id="is_expense" name="is_expense" type="checkbox"><br>
 
-                <label for="is_expense">Это расход?</label>
-                <input id="is_expense" name="is_expense" type="checkbox"><br>
-
-                <button type="submit">Добавить категорию</button>
-            </form>
-        </div>
+            <button type="submit">Добавить категорию</button>
+        </form>
     </div>
+</div>
 
-    <!-- Модальное окно для редактирования категории -->
-    <div class="modal" id="editCategoryModal">
-        <div class="modal-content">
-            <span class="close" id="closeEditModal">&times;</span>
-            <h2>Редактировать категорию</h2>
-            <form id="editCategoryForm" method="POST">
-                {% csrf_token %}
-                <label for="editCategoryName">Название категории:</label>
-                <input id="editCategoryName" name="name" required type="text"><br><br>
 
-                <label for="editCategoryValue">Числовое значение:</label>
-                <input id="editCategoryValue" name="value" required type="number"><br><br>
+<!-- Модальное окно для редактирования категории -->
+<div class="modal" id="editCategoryModal">
+    <div class="modal-content">
+        <span class="close" id="closeEditModal">&times;</span>
+        <h2>Редактировать категорию</h2>
+        <form id="editCategoryForm" method="POST">
+            {% csrf_token %}
+            <label for="editCategoryName">Название категории:</label>
+            <input id="editCategoryName" name="name" required type="text"><br><br>
 
-                <label for="editCategoryColor">Цвет:</label>
-                <input id="editCategoryColor" name="color" required type="color"><br><br>
+            <label for="editCategoryColor">Цвет:</label>
+            <input id="editCategoryColor" name="color" required type="color"><br><br>
 
-                <button id="saveCategoryBtn" type="submit">Сохранить изменения</button>
-                <button id="deleteCategoryBtn" type="button">Удалить категорию</button>
-            </form>
-        </div>
+            <button id="saveCategoryBtn" type="submit">Сохранить изменения</button>
+            <button id="deleteCategoryBtn" type="button">Удалить категорию</button>
+        </form>
     </div>
+</div>
+
 
 </div>
 <script>
@@ -701,36 +697,33 @@ document.getElementById("editCategoryForm").addEventListener("submit", function(
     });
 });
 
-    // Открытие модального окна для редактирования категории
-    function openEditCategoryModal(categoryName) {
-        if (!categoryName) {
-            console.error("Имя категории отсутствует.");
-            return;
-        }
-
-        // Получаем данные категории через AJAX
-        fetch(`/api/category/${categoryName}/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Заполняем модальное окно данными категории
-                    document.getElementById("editCategoryName").value = data.category.name;
-                    document.getElementById("editCategoryValue").value = data.category.value;
-                    document.getElementById("editCategoryColor").value = data.category.color;
-
-                    // Отображаем модальное окно
-                    document.getElementById("editCategoryModal").style.display = "block";
-                }
-            })
-            .catch(error => {
-                console.error("Ошибка:", error);
-            });
+// Открытие модального окна для редактирования категории
+function openEditCategoryModal(categoryName) {
+    if (!categoryName) {
+        console.error("Имя категории отсутствует.");
+        return;
     }
 
-    // Закрытие модального окна
-    document.getElementById("closeEditModal").onclick = function () {
-        document.getElementById("editCategoryModal").style.display = "none";
-    };
+    // Получаем данные категории через AJAX
+    fetch(`/api/category/${categoryName}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Заполняем модальное окно данными категории
+                document.getElementById("editCategoryName").value = data.category.name;
+                document.getElementById("editCategoryColor").value = data.category.color;
+
+                // Отображаем модальное окно
+                document.getElementById("editCategoryModal").style.display = "block";
+            } else {
+                console.error("Ошибка при получении данных категории:", data.error);
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка:", error);
+        });
+}
+
 
 
     // Удаление категории через AJAX
