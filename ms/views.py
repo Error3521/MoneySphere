@@ -1,13 +1,16 @@
-from django.urls import reverse_lazy
-from django.views.generic.edit import CreateView
-from .forms import CustomUserCreationForm
-from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .forms import CategoryForm
-from difflib import SequenceMatcher
+from django.contrib.auth import logout
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.edit import CreateView
+from django.urls import reverse_lazy
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Sum
 from django.http import JsonResponse
-from .models import Category
+from difflib import SequenceMatcher
+from .forms import CustomUserCreationForm, CategoryForm, TransactionForm, AccountForm
+from .models import Category, Transaction, Account
+import json
+import logging
 
 
 class SignUp(CreateView):
@@ -28,6 +31,11 @@ def home(request):
 
 def initial_page(request):
     return render(request, "ms/home/initial/initial.html")
+
+
+def logout_view(request):
+    logout(request)  # Выход из аккаунта
+    return JsonResponse({'success': True})  # Или редирект на страницу входа
 
 
 @login_required
@@ -115,14 +123,13 @@ def update_category(request, category_name):
             category.name = request.POST.get("name")
             category.color = request.POST.get("color")
             category.is_expense = request.POST.get("is_expense") == "on"
-            category.value = category.value  
+            category.value = category.value
 
             category.save()
 
             return JsonResponse({"success": True})
         except Category.DoesNotExist:
             return JsonResponse({"success": False, "error": "Категория не найдена."})
-
 
 
 def get_category_data(request, category_name):
@@ -149,15 +156,6 @@ def delete_category(request, category_name):
             return JsonResponse({'success': True})
         except Category.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Категория не найдена'}, status=404)
-
-
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from .models import Transaction
-from .forms import TransactionForm
-from django.shortcuts import render
-from .models import Transaction
 
 
 def transactions_view(request):
@@ -270,13 +268,6 @@ def delete_transaction(request, transaction_id):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from .models import Account
-from .forms import AccountForm
-
-
 @login_required
 def accounts_view(request):
     accounts = Account.objects.filter(user=request.user)
@@ -297,6 +288,7 @@ def create_account(request):
         form = AccountForm()
     return render(request, 'ms/home/initial/accounts/account_form_partial.html', {'form': form})
 
+
 @login_required
 def update_account(request, account_id):
     account = get_object_or_404(Account, id=account_id, user=request.user)
@@ -310,6 +302,7 @@ def update_account(request, account_id):
         form = AccountForm(instance=account)
     return render(request, 'ms/home/initial/accounts/account_form_partial.html', {'form': form})
 
+
 @login_required
 def delete_account(request, account_id):
     account = get_object_or_404(Account, id=account_id, user=request.user)
@@ -319,16 +312,8 @@ def delete_account(request, account_id):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
-from django.http import JsonResponse
-from datetime import datetime
-from django.db.models import Q
-
-import logging
-
 logger = logging.getLogger(__name__)
 
-from django.http import JsonResponse
-from .models import Transaction
 
 @login_required
 def filter_transactions(request):
@@ -359,19 +344,14 @@ def filter_transactions(request):
             'account': {
                 'id': tx.account.id if tx.account else None,
                 'name': tx.account.name if tx.account else 'Не указан',
-                'currency': tx.account.currency_code if tx.account and hasattr(tx.account, 'currency_code') else 'Не указана'
+                'currency': tx.account.currency_code if tx.account and hasattr(tx.account,
+                                                                               'currency_code') else 'Не указана'
             } if tx.account else None,
         }
         for tx in transactions
     ]
 
     return JsonResponse({'success': True, 'transactions': transactions_data})
-
-
-from django.http import JsonResponse
-from django.db.models import Sum
-from .models import Category, Transaction
-from django.contrib.auth.decorators import login_required
 
 
 @login_required
@@ -416,11 +396,6 @@ def filter_categories(request):
     return JsonResponse({'success': True, 'categories': category_data})
 
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-from .models import Category  # Импортируем модель Category
-
 @csrf_exempt
 def update_categories(request):
     if request.method == 'POST':
@@ -457,8 +432,3 @@ def update_categories(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
-
-from django.shortcuts import render
-
-
