@@ -28,51 +28,35 @@
             height: 70vh;
         }
 
-        .donut-chart {
-            position: relative;
-            width: 800px;
-            height: 800px;
-            border-radius: 50%;
-            background: conic-gradient(
-                {% for category in categories %}
-                    {{ category.color }} 0% {{ category.percentage }}%{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            );
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+.donut-chart {
+    position: relative;
+    width: calc(min(58vw, 58vh)); /* Диаграмма будет квадратной и адаптироваться к меньшей стороне экрана */
+    height: calc(min(58vw, 58vh));
+    border-radius: 50%;
+    background: conic-gradient(
+        {% for category in categories %}
+            {{ category.color }} 0% {{ category.percentage }}%{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    );
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-        .donut-chart::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 770px;
-            height: 770px;
-            background: #E4E9F7;
-            border-radius: 50%;
-            z-index: 1;
-        }
-        .category {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: #4FC4F6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            font-size: 14px;
-            color: #fff;
-            cursor: pointer;
-        }
+.donut-chart::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(min(55vw, 55vh)); /* Аналогично основной диаграмме */
+    height: calc(min(55vw, 55vh));
+    background: #E4E9F7;
+    border-radius: 50%;
+    z-index: 1;
+}
 
-        .category:hover {
-            background-color: #E64C65;
-        }
+
 
         .create-button {
             position: absolute;
@@ -150,18 +134,13 @@
             display: none;
         }
 
-        .categories {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-        }
+
         .diagrams-container {
             position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
+            top: calc(min(10vw, 10vh));
             width: 100%;
             height: 100%;
         }
@@ -177,13 +156,48 @@
             top: 60px;
             left: 20px;
         }
+.categories {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+
+}
+
+.category {
+    position: absolute;
+    width: calc(min(7vw, 7vh));
+    height: calc(min(7vw, 7vh));
+    border-radius: 50%;
+    background-color: #4FC4F6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 14px;
+    color: #fff;
+    cursor: pointer;
+    transform-origin: center center;
+    transition: background-color 0.3s ease;
+}
+
+.category:hover {
+    background-color: #E64C65;
+}
+
+.category-value {
+    position: absolute;
+    top: calc(min(7vw, 7vh));
+    font-size: 14px;
+    color: #333;
+    text-align: center;
+}
 
     </style>
 </head>
 <body>
 <div class="button-container">
     <button class="btn btn-primary" id="createCategoryBtn">+ Создать категорию</button>
-        <button class="btn btn-primary" onclick="openCategoryFilterModal('range')">Фильтр категорий</button>
+    <button class="btn btn-primary" onclick="openCategoryFilterModal('range')">Фильтр категорий</button>
 
 </div>
 
@@ -192,95 +206,119 @@
     <!-- Диаграмма доходов -->
     <div class="diagrams-container">
         <div class="diagram active" id="incomeDiagram">
-            <div class="donut-chart" onclick="swapDiagrams()" style="background: conic-gradient(
-                {% for category in income_categories %}
-                    {{ category.color }} {{ category.start_percentage }}% {{ category.end_percentage }}%{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            );">
+            <div class="donut-chart" onclick="swapDiagrams()" style="background:
+                    {% if income_categories %}
+                        conic-gradient(
+                            {% for category in income_categories %}
+                                {{ category.color }} {{ category.start_percentage }}% {{ category.end_percentage }}%{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        );
+                    {% else %}
+                        #ccc;
+                    {% endif %};">
                 <div class="chart-center-text">
                     <div>Доходы: {{ total_income|default:"0" }}₽</div>
                 </div>
-            </div>
-            <div class="categories">
-                {% for category in income_categories %}
-                <div class="category income-category"
-                     data-name="{{ category.name }}"
-                     onclick="openEditCategoryModal('{{ category.name }}')"
-                     style="background-color: {{ category.color }};">
-                    {{ category.name }}
+                <div class="categories">
+                    {% for category in income_categorie %}
+                    <div class="category income-category"
+                         data-name="{{ category.name }}"
+                         onclick="openEditCategoryModal('{{ category.name }}')"
+                         style="background-color: {{ category.color }};">
+                        {{ category.name }}
+                        <div class="category-value">{{ category.value }}₽</div>
+                    </div>
+                    {% empty %}
+                    <div class="category income-category" style="background-color: #ccc;">
+                        Нет категорий для доходов
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
+
             </div>
+
+
         </div>
 
         <div class="diagram hidden" id="expenseDiagram">
-            <div class="donut-chart" onclick="swapDiagrams()" style="background: conic-gradient(
-                {% for category in expense_categories %}
-                    {{ category.color }} {{ category.start_percentage }}% {{ category.end_percentage }}%{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            );">
+            <div class="donut-chart" onclick="swapDiagrams()" style="background:
+                    {% if expense_categories %}
+                        conic-gradient(
+                            {% for category in expense_categories %}
+                                {{ category.color }} {{ category.start_percentage }}% {{ category.end_percentage }}%{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        );
+                    {% else %}
+                        #ccc;
+                    {% endif %};">
                 <div class="chart-center-text">
                     <div>Расходы: {{ total_expenses|default:"0" }}₽</div>
                 </div>
-            </div>
-            <div class="categories">
-                {% for category in expense_categories %}
-                <div class="category expense-category"
-                     data-name="{{ category.name }}"
-                     onclick="openEditCategoryModal('{{ category.name }}')"
-                     style="background-color: {{ category.color }};">
-                    {{ category.name }}
+                <div class="categories">
+                    {% for category in expense_categorie %}
+                    <div class="category expense-category"
+                         data-name="{{ category.name }}"
+                         onclick="openEditCategoryModal('{{ category.name }}')"
+                         style="background-color: {{ category.color }};">
+                        {{ category.name }}
+                        <div class="category-value">{{ category.value }}₽</div>
+                    </div>
+                    {% empty %}
+                    <div class="category expense-category" style="background-color: #ccc;">
+                        Нет категорий для расходов
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
-
         </div>
-
     </div>
 
     <!-- Модальное окно для фильтрации категорий -->
-    <div class="modal fade" id="filterCategoryModal" tabindex="-1" aria-labelledby="filterCategoryModalLabel" aria-hidden="true">
+    <div aria-hidden="true" aria-labelledby="filterCategoryModalLabel" class="modal fade" id="filterCategoryModal"
+         tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="filterCategoryModalLabel">Фильтр категорий</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                    <button aria-label="Закрыть" class="btn-close" data-bs-dismiss="modal" type="button"></button>
                 </div>
                 <div class="modal-body" id="filterCategoryContent">
                     <!-- Фильтры будут динамически подгружаться через JavaScript -->
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                    <button class="btn btn-primary" onclick="applyCategoryFilter(); window.location.href=window.location.href">Применить</button>
+                    <button class="btn btn-primary"
+                            onclick="applyCategoryFilter(); window.location.href=window.location.href">Применить
+                    </button>
                 </div>
             </div>
         </div>
 
     </div>
 
-<!-- Модальное окно для добавления категории -->
-<div class="modal" id="createCategoryModal">
-    <div class="modal-content">
-        <span class="close" id="closeModal">&times;</span>
-        <h2>Добавить новую категорию</h2>
-        <form id="categoryForm" method="POST">
-            {% csrf_token %}
-            <label for="categoryName">Название категории:</label>
-            <input id="categoryName" name="name" required type="text"><br><br>
+    <!-- Модальное окно для добавления категории -->
+    <div class="modal" id="createCategoryModal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <h2>Добавить новую категорию</h2>
+            <form id="categoryForm" method="POST">
+                {% csrf_token %}
+                <label for="categoryName">Название категории:</label>
+                <input id="categoryName" name="name" required type="text"><br><br>
 
-            <label for="categoryValue">Числовое значение:</label>
-            <input id="categoryValue" name="value" required type="number"><br><br>
+                <label for="categoryValue">Числовое значение:</label>
+                <input id="categoryValue" name="value" required type="number"><br><br>
 
-            <label for="categoryColor">Цвет:</label>
-            <input id="categoryColor" name="color" required type="color"><br><br>
+                <label for="categoryColor">Цвет:</label>
+                <input id="categoryColor" name="color" required type="color"><br><br>
 
-            <label for="is_expense">Это расход?</label>
-            <input id="is_expense" name="is_expense" type="checkbox"><br>
+                <label for="is_expense">Это расход?</label>
+                <input id="is_expense" name="is_expense" type="checkbox"><br>
 
-            <button type="submit">Добавить категорию</button>
-        </form>
+                <button type="submit">Добавить категорию</button>
+            </form>
+        </div>
     </div>
-</div>
 
     <!-- Модальное окно для редактирования категории -->
     <div class="modal" id="editCategoryModal">
@@ -305,165 +343,209 @@
     </div>
 
 </div>
+<script>
+    function positionCategories(diagramId, categoryClass) {
+        const diagram = document.querySelector(`#${diagramId}`);
+        if (!diagram) return;
 
+        const categories = diagram.querySelectorAll(`.${categoryClass}`);
+        const maxCategories = 16; // Максимальное количество категорий
+        const visibleCategories = Array.from(categories).slice(0, maxCategories); // Ограничиваем количество категорий
+        const angleStep = 360 / visibleCategories.length; // Угол между категориями
+
+        // Временное отображение скрытого диаграммы для расчета размеров
+        const wasHidden = diagram.classList.contains('hidden');
+        if (wasHidden) {
+            diagram.style.display = 'block';
+        }
+
+        // Определяем размеры диаграммы
+        const donutChart = diagram.querySelector('.donut-chart');
+        const donutChartCenterX = donutChart.offsetWidth / 2;
+        const donutChartCenterY = donutChart.offsetHeight / 2;
+
+        const radius = donutChartCenterX + 75; // Радиус от центра + отступ
+
+        visibleCategories.forEach((category, index) => {
+            const angle = index * angleStep; // Угол в градусах
+            const radian = (angle * Math.PI) / 180; // Угол в радианах
+
+            // Координаты категорий
+            const x = donutChartCenterX + radius * Math.cos(radian) - category.offsetWidth / 2;
+            const y = donutChartCenterY + radius * Math.sin(radian) - category.offsetHeight / 2;
+
+            category.style.position = 'absolute';
+            category.style.left = `${x}px`;
+            category.style.top = `${y}px`;
+        });
+
+        // Вернуть диаграмму в изначальное состояние
+        if (wasHidden) {
+            diagram.style.display = '';
+        }
+    }
+
+    // Применение для каждой диаграммы
+    positionCategories('incomeDiagram', 'income-category'); // Расположить категории доходов
+    positionCategories('expenseDiagram', 'expense-category'); // Расположить категории расходов
+
+
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-let currentCategoryFilterType = null;
+    let currentCategoryFilterType = null;
 
-function openCategoryFilterModal(filterType) {
-    currentCategoryFilterType = filterType; // Сохраняем тип фильтра
+    function openCategoryFilterModal(filterType) {
+        currentCategoryFilterType = filterType; // Сохраняем тип фильтра
 
-    let filterContent = ''; // Начинаем с пустого контента
+        let filterContent = ''; // Начинаем с пустого контента
 
-    // Проверяем тип фильтра и подготавливаем соответствующие элементы
-    if (filterType === 'range') {
-        filterContent = `
-            <div class="mb-3">
-                <label for="category_start_date" class="form-label">От:</label>
-                <input type="date" id="category_start_date" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label for="category_end_date" class="form-label">До:</label>
-                <input type="date" id="category_end_date" class="form-control">
-            </div>
-        `;
-    } else if (filterType === 'year') {
-        const currentYear = new Date().getFullYear();
-        filterContent = `
-            <div class="d-flex justify-content-center align-items-center">
-                <button class="btn btn-secondary me-3" onclick="changeYear(-1)">←</button>
-                <span id="filter_year" class="fw-bold">${currentYear}</span>
-                <button class="btn btn-secondary ms-3" onclick="changeYear(1)">→</button>
-            </div>
-        `;
-    } else if (filterType === 'month') {
-        const monthNames = [
-            "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
-        ];
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
+        // Проверяем тип фильтра и подготавливаем соответствующие элементы
+        if (filterType === 'range') {
+            filterContent = `
+                <div class="mb-3">
+                    <label for="category_start_date" class="form-label">От:</label>
+                    <input type="date" id="category_start_date" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label for="category_end_date" class="form-label">До:</label>
+                    <input type="date" id="category_end_date" class="form-control">
+                </div>
+            `;
+        } else if (filterType === 'year') {
+            const currentYear = new Date().getFullYear();
+            filterContent = `
+                <div class="d-flex justify-content-center align-items-center">
+                    <button class="btn btn-secondary me-3" onclick="changeYear(-1)">←</button>
+                    <span id="filter_year" class="fw-bold">${currentYear}</span>
+                    <button class="btn btn-secondary ms-3" onclick="changeYear(1)">→</button>
+                </div>
+            `;
+        } else if (filterType === 'month') {
+            const monthNames = [
+                "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+            ];
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
 
-        filterContent = `
-            <div class="d-flex justify-content-center align-items-center">
-                <button class="btn btn-secondary me-3" onclick="changeMonth(-1)">←</button>
-                <span id="filter_month" class="fw-bold">${monthNames[currentMonth]} ${currentYear}</span>
-                <button class="btn btn-secondary ms-3" onclick="changeMonth(1)">→</button>
-            </div>
-        `;
-    }
-
-    // Заполняем модальное окно контентом
-    document.getElementById('filterCategoryContent').innerHTML = filterContent;
-
-    // Показываем модальное окно
-    const filterModal = new bootstrap.Modal(document.getElementById('filterCategoryModal'));
-    filterModal.show();
-}
-
-function applyCategoryFilter() {
-    let params = {};
-
-    if (currentCategoryFilterType === 'range') {
-        const startDate = document.getElementById('category_start_date').value;
-        const endDate = document.getElementById('category_end_date').value;
-        if (!startDate || !endDate) {
-            alert("Укажите оба значения для диапазона!");
-            return;
+            filterContent = `
+                <div class="d-flex justify-content-center align-items-center">
+                    <button class="btn btn-secondary me-3" onclick="changeMonth(-1)">←</button>
+                    <span id="filter_month" class="fw-bold">${monthNames[currentMonth]} ${currentYear}</span>
+                    <button class="btn btn-secondary ms-3" onclick="changeMonth(1)">→</button>
+                </div>
+            `;
         }
-        params = { start_date: startDate, end_date: endDate };
-    } else if (currentCategoryFilterType === 'year') {
-        const year = document.getElementById('filter_year').textContent;
-        params = { year };
-    } else if (currentCategoryFilterType === 'month') {
-        const [month, year] = document.getElementById('filter_month').textContent.split(' ');
-        params = { year, month };
+
+        // Заполняем модальное окно контентом
+        document.getElementById('filterCategoryContent').innerHTML = filterContent;
+
+        // Показываем модальное окно
+        const filterModal = new bootstrap.Modal(document.getElementById('filterCategoryModal'));
+        filterModal.show();
     }
 
-    fetch(`/api/categories/filter/?${new URLSearchParams(params)}`)
+    function applyCategoryFilter() {
+        let params = {};
+
+        if (currentCategoryFilterType === 'range') {
+            const startDate = document.getElementById('category_start_date').value;
+            const endDate = document.getElementById('category_end_date').value;
+            if (!startDate || !endDate) {
+                alert("Укажите оба значения для диапазона!");
+                return;
+            }
+            params = { start_date: startDate, end_date: endDate };
+        } else if (currentCategoryFilterType === 'year') {
+            const year = document.getElementById('filter_year').textContent;
+            params = { year };
+        } else if (currentCategoryFilterType === 'month') {
+            const [month, year] = document.getElementById('filter_month').textContent.split(' ');
+            params = { year, month };
+        }
+
+        fetch(`/api/categories/filter/?${new URLSearchParams(params)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем только список категорий
+                    updateCategoryList(data.categories);
+                } else {
+                    alert("Ошибка фильтрации!");
+                }
+            })
+            .catch(err => {
+                console.error("Ошибка:", err);
+            });
+    }
+
+
+    function saveUpdatedCategoriesToDatabase(categories) {
+        // Формируем данные для отправки
+        const data = { categories };
+
+        // Отправка данных на сервер для сохранения в базе данных
+        fetch('/api/categories/update/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),  // Получение CSRF токена
+            },
+            body: JSON.stringify(data),
+        })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Обновляем только список категорий
-                updateCategoryList(data.categories);
+                console.log('Категории успешно обновлены в базе данных');
             } else {
-                alert("Ошибка фильтрации!");
+                alert("Ошибка при обновлении категорий в базе данных");
             }
         })
-        .catch(err => {
-            console.error("Ошибка:", err);
+        .catch(error => {
+            console.error("Ошибка:", error);
         });
-}
-
-
-function saveUpdatedCategoriesToDatabase(categories) {
-    // Формируем данные для отправки
-    const data = { categories };
-
-    // Отправка данных на сервер для сохранения в базе данных
-    fetch('/api/categories/update/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken(),  // Получение CSRF токена
-        },
-        body: JSON.stringify(data),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Категории успешно обновлены в базе данных');
-        } else {
-            alert("Ошибка при обновлении категорий в базе данных");
-        }
-    })
-    .catch(error => {
-        console.error("Ошибка:", error);
-    });
-}
-function getCsrfToken() {
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    return csrfToken;
-}
+    }
+    function getCsrfToken() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        return csrfToken;
+    }
 
 
 
-function updateCategoryList(categories) {
-    // Находим элемент на странице, где будут отображаться категории
-    const categoryList = document.getElementById('categoryList');
-    const incomeCategories = document.getElementById('incomeCategories');  // Для доходных категорий
-    const expenseCategories = document.getElementById('expenseCategories');  // Для расходных категорий
+    function updateCategoryList(categories) {
+        // Находим элемент на странице, где будут отображаться категории
+        const categoryList = document.getElementById('categoryList');
+        const incomeCategories = document.getElementById('incomeCategories');  // Для доходных категорий
+        const expenseCategories = document.getElementById('expenseCategories');  // Для расходных категорий
 
-    // Очищаем текущий список категорий
-    categoryList.innerHTML = '';
-    incomeCategories.innerHTML = '';
-    expenseCategories.innerHTML = '';
+        // Очищаем текущий список категорий
+        categoryList.innerHTML = '';
+        incomeCategories.innerHTML = '';
+        expenseCategories.innerHTML = '';
 
-    // Обрабатываем полученные категории
-    categories.forEach(category => {
-        const listItem = document.createElement('li');
-        listItem.textContent = category.name + ': ' + category.value; // Отображаем имя и пересчитанное значение
-        categoryList.appendChild(listItem);
+        // Обрабатываем полученные категории
+        categories.forEach(category => {
+            const listItem = document.createElement('li');
+            listItem.textContent = category.name + ': ' + category.value; // Отображаем имя и пересчитанное значение
+            categoryList.appendChild(listItem);
 
-        // Динамически обновляем категории на диаграммах (если они существуют)
-        if (category.is_expense) {
-            const expenseItem = document.createElement('div');
-            expenseItem.classList.add('category');
-            expenseItem.style.backgroundColor = category.color;
-            expenseItem.textContent = category.name + ': ' + category.value;
-            expenseCategories.appendChild(expenseItem);
-        } else {
-            const incomeItem = document.createElement('div');
-            incomeItem.classList.add('category');
-            incomeItem.style.backgroundColor = category.color;
-            incomeItem.textContent = category.name + ': ' + category.value;
-            incomeCategories.appendChild(incomeItem);
-        }
-    });
-}
-
-
-
+            // Динамически обновляем категории на диаграммах (если они существуют)
+            if (category.is_expense) {
+                const expenseItem = document.createElement('div');
+                expenseItem.classList.add('category');
+                expenseItem.style.backgroundColor = category.color;
+                expenseItem.textContent = category.name + ': ' + category.value;
+                expenseCategories.appendChild(expenseItem);
+            } else {
+                const incomeItem = document.createElement('div');
+                incomeItem.classList.add('category');
+                incomeItem.style.backgroundColor = category.color;
+                incomeItem.textContent = category.name + ': ' + category.value;
+                incomeCategories.appendChild(incomeItem);
+            }
+        });
+    }
 
 
 </script>
@@ -624,6 +706,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (incomeDiagram.classList.contains("active")) {
             incomeDiagram.classList.remove("active");
             incomeDiagram.classList.add("hidden");
+            expenseDiagram.classList.contains("active")
             expenseDiagram.classList.remove("hidden");
             expenseDiagram.classList.add("active");
         } else {
@@ -635,33 +718,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         positionCategories(".diagram.active .categories .category", ".diagrams-container");
     }
-
-
-function positionCategories(categorySelector, containerSelector) {
-    const container = document.querySelector(containerSelector);
-    const categories = document.querySelectorAll(categorySelector);
-    const centerX = container.offsetWidth / 2;
-    const centerY = container.offsetHeight / 2;
-    const radius = 450; // Радиус размещения категорий (можно настроить)
-
-    const angleStep = (2 * Math.PI) / categories.length;
-
-    categories.forEach((category, index) => {
-        const angle = angleStep * index;
-        const x = centerX + radius * Math.cos(angle) - category.offsetWidth / 2 - 250;
-        const y = centerY + radius * Math.sin(angle) - category.offsetHeight / 2 - 38;
-
-        category.style.left = `${x}px`;
-        category.style.top = `${y}px`;
-        category.style.position = "absolute"; // Категории должны быть позиционированы относительно контейнера
-    });
-}
-
-
-    // Вызываем функцию при загрузке страницы и после смены диаграммы
-    window.onload = function () {
-        positionCategories(".diagram.active .categories .category", ".diagrams-container");
-    };
 
 
 </script>

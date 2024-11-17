@@ -71,6 +71,8 @@ def categories_combined_view(request):
         'expense_categories': expense_data,
         'total_expenses': total_expenses,
         'total_income': total_income,
+        'income_categorie': income_categories,  # Передаем оригинальные категории доходов
+        'expense_categorie': expense_categories,  # Передаем оригинальные категории расходов
     })
 
 
@@ -451,3 +453,8 @@ def update_categories(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+from django.shortcuts import render
+
+
