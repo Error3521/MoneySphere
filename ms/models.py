@@ -1,12 +1,5 @@
-from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
-from django.conf import settings
-
-
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.db import models
-from django.conf import settings
 
 
 class CustomUserManager(BaseUserManager):
@@ -62,7 +55,6 @@ class Category(models.Model):
         return self.name
 
 
-
 # Модель счетов
 class Account(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accounts')
@@ -90,6 +82,10 @@ class Transaction(models.Model):
         return f"Transaction {self.id}: {self.amount} on {self.transaction_date}"
 
     @staticmethod
+    def filter_by_user(user):
+        return Transaction.objects.filter(user=user)
+
+    @staticmethod
     def filter_by_year(user, year):
         return Transaction.objects.filter(user=user, transaction_date__year=year)
 
@@ -100,6 +96,3 @@ class Transaction(models.Model):
     @staticmethod
     def filter_by_range(user, start_date, end_date):
         return Transaction.objects.filter(user=user, transaction_date__range=(start_date, end_date))
-
-
-

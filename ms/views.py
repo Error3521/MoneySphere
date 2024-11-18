@@ -33,7 +33,6 @@ def initial_page(request):
     return render(request, "ms/home/initial/initial.html")
 
 
-
 @login_required
 def categories_combined_view(request):
     user = request.user
@@ -154,8 +153,9 @@ def delete_category(request, category_name):
             return JsonResponse({'success': False, 'error': 'Категория не найдена'}, status=404)
 
 
+@login_required
 def transactions_view(request):
-    transactions = Transaction.objects.all()
+    transactions = Transaction.objects.filter(user=request.user)
     return render(request, 'ms/home/initial/transaction/transaction.html', {'transactions': transactions})
 
 
@@ -167,91 +167,77 @@ def create_transaction(request):
             transaction = form.save(commit=False)
             transaction.user = request.user
 
-            # Получаем счет и категорию
             account = transaction.account
             category = transaction.category
             amount = transaction.amount
 
-            # Обработка баланса счета
-            if category.is_expense:  # Если категория расходная
-                account.balance -= amount  # Уменьшаем баланс счета для расходов
-                category.value += amount  # Добавляем сумму транзакции в категорию расходов
-            else:  # Если категория доходная
-                account.balance += amount  # Увеличиваем баланс счета для доходов
-                category.value += amount  # Добавляем сумму транзакции в категорию доходов
+            if category.is_expense:
+                account.balance -= amount
+                category.value += amount
+            else:
+                account.balance += amount
+                category.value += amount
 
-            # Сохраняем изменения в счете и категории
             account.save()
             category.save()
 
-            # Сохраняем транзакцию
             transaction.save()
 
             return JsonResponse({'success': True})
         return JsonResponse({'success': False, 'errors': form.errors})
     else:
+        # Отфильтруем категории и счета для текущего пользователя
+        accounts = Account.objects.filter(user=request.user)
+        categories = Category.objects.filter(user=request.user)
         form = TransactionForm()
+        form.fields['account'].queryset = accounts
+        form.fields['category'].queryset = categories
     return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
 
 
 @login_required
 def update_transaction(request, transaction_id):
-    # Получаем текущую транзакцию для пользователя
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
 
     if request.method == 'POST':
-        # Получаем старые данные перед изменением
         old_amount = transaction.amount
         old_category = transaction.category
-
-        # Создаем форму с новыми данными
         form = TransactionForm(request.POST, instance=transaction)
 
         if form.is_valid():
-            # Сохраняем новые данные транзакции
             updated_transaction = form.save(commit=False)
             updated_transaction.user = request.user
 
-            # Получаем счет и категорию
             account = updated_transaction.account
             category = updated_transaction.category
             new_amount = updated_transaction.amount
 
-            # Рассчитываем разницу в суммах (для изменения баланса и категорий)
             amount_diff = new_amount - old_amount
 
-            # Логирование для отладки
-            print(f"Old amount: {old_amount}, New amount: {new_amount}, Difference: {amount_diff}")
+            if old_category.is_expense:
+                account.balance += old_amount
+            else:
+                account.balance -= old_amount
 
-            # Восстанавливаем старую сумму на счете и категории
-            if old_category.is_expense:  # Для расходных категорий
-                account.balance += old_amount  # Возвращаем старое значение расходов
-            else:  # Для доходных категорий
-                account.balance -= old_amount  # Возвращаем старое значение доходов
+            if category.is_expense:
+                category.value -= amount_diff
+                account.balance -= amount_diff
+            else:
+                category.value += amount_diff
+                account.balance += amount_diff
 
-            # Обновляем категорию на основе разницы (если категория расходная или доходная)
-            if category.is_expense:  # Для расходных категорий
-                category.value -= amount_diff  # Уменьшаем или увеличиваем категорию расхода
-            else:  # Для доходных категорий
-                category.value += amount_diff  # Уменьшаем или увеличиваем категорию дохода
-
-            # Обновляем баланс счета в зависимости от новой суммы транзакции
-            if category.is_expense:  # Если категория расходная
-                account.balance -= amount_diff  # Для расходных категорий уменьшаем баланс
-            else:  # Если категория доходная
-                account.balance += amount_diff  # Для доходных категорий увеличиваем баланс
-
-            # Сохраняем изменения в счете и категории
             account.save()
             category.save()
-
-            # Сохраняем обновленную транзакцию
             updated_transaction.save()
 
             return JsonResponse({'success': True})
         return JsonResponse({'success': False, 'errors': form.errors})
     else:
+        accounts = Account.objects.filter(user=request.user)
+        categories = Category.objects.filter(user=request.user)
         form = TransactionForm(instance=transaction)
+        form.fields['account'].queryset = accounts
+        form.fields['category'].queryset = categories
     return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
 
 
@@ -262,6 +248,7 @@ def delete_transaction(request, transaction_id):
         transaction.delete()
         return JsonResponse({'success': True})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
 
 
 @login_required
