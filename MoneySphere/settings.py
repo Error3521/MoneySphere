@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -103,10 +104,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-
 STATICFILES_DIRS = [
-    BASE_DIR / 'ms/static'
+    BASE_DIR / "static",  # путь к директории с вашими статическими файлами
 ]
+
+
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 

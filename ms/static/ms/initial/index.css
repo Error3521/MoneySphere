@@ -1,6 +1,6 @@
-.u-section-1 {
-      background-image: linear-gradient(0deg, rgba(51, 44, 41, 0.65), rgba(51, 44, 41, 0.65)), url("{% static 'ms/initial/images/camping-min.jpg' %}"");
-      background-position: 50% 50%;
+ .u-section-1 {
+  background-image: linear-gradient(0deg, rgba(51, 44, 41, 0.65), rgba(51, 44, 41, 0.65)), url('images/camping-min.jpg');
+  background-position: 50% 50%;
 }
 
 .u-section-1 .u-sheet-1 {
@@ -945,10 +945,4 @@
   .u-section-5 .u-group-1 {
     width: 340px;
   }
-}
-
-.u-header .u-image-1 {
-  width: 73px;
-  height: 0px;
-  margin: 0px auto -57px 0;
 }
