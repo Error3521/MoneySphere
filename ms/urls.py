@@ -11,9 +11,9 @@ urlpatterns = [
 
     path("initial/categories/", views.categories_combined_view, name="categories"),
     path('initial/categories/create/', views.create_category, name='create_category'),
-    path('api/category/<str:category_name>/', views.get_category_data, name='get_category_data'),
-    path('api/category/<str:category_name>/update/', views.update_category, name='update_category'),
-    path('api/category/<str:category_name>/delete/', views.delete_category, name='delete_category'),
+    path('api/category/<int:category_id>/', views.get_category_data, name='get_category_data'),
+    path('api/category/<int:category_id>/update/', views.update_category, name='update_category'),
+    path('api/category/<str:category_id>/delete/', views.delete_category, name='delete_category'),
     path("api/categories/filter/", views.filter_categories, name="filter_categories"),
 
 

@@ -267,12 +267,12 @@ text-align: center;
         </div>
         <div class="categories">
           {% for category in income_categorie %}
-          <div class="category income-category" data-name="{{ category.name }}"
-               onclick="openEditCategoryModal('{{ category.name }}')" style="background-color: {{ category.color }};">
-
+          <div class="category income-category" data-id="{{ category.id }}"
+               onclick="openEditCategoryModal('{{ category.id }}')" style="background-color: {{ category.color }};">
             {{ category.name }}
             <div class="category-value">{{ category.value }}₽</div>
           </div>
+
           {% empty %}
           {% endfor %}
         </div>
@@ -300,11 +300,12 @@ text-align: center;
         </div>
         <div class="categories">
           {% for category in expense_categorie %}
-          <div class="category expense-category" data-name="{{ category.name }}"
-               onclick="openEditCategoryModal('{{ category.name }}')" style="background-color: {{ category.color }};">
+          <div class="category income-category" data-id="{{ category.id }}"
+               onclick="openEditCategoryModal('{{ category.id }}')" style="background-color: {{ category.color }};">
             {{ category.name }}
             <div class="category-value">{{ category.value }}₽</div>
           </div>
+
           {% empty %}
 
           {% endfor %}
@@ -621,75 +622,79 @@ text-align: center;
           return '';
       }
   // Обработчик формы редактирования категории через AJAX
-  document.getElementById("editCategoryForm").addEventListener("submit", function(event) {
-      event.preventDefault(); // Останавливаем стандартное поведение формы
-      const formData = new FormData(this);
-      const categoryName = document.getElementById("editCategoryName").value; // Получаем название категории для обновления
-      fetch(`/api/category/${categoryName}/update/`, {
-              method: "POST",
-              body: formData,
-              headers: {
-                  "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
-              },
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  // Закрытие модального окна и обновление страницы
-                  document.getElementById("editCategoryModal").style.display = "none";
-                  window.location.reload(); // Обновление страницы для отображения измененных данных
-              } else {
-                  alert(data.error || "Ошибка при сохранении изменений!");
-              }
-          })
-          .catch(error => {
-              console.error("Ошибка:", error);
-          });
-  });
+document.getElementById("editCategoryForm").addEventListener("submit", function(event) {
+    event.preventDefault(); // Останавливаем стандартное поведение формы
+    const formData = new FormData(this);
+    const categoryId = this.getAttribute("data-id"); // Получаем ID категории
+    fetch(`/api/category/${categoryId}/update/`, {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Закрытие модального окна и обновление страницы
+                document.getElementById("editCategoryModal").style.display = "none";
+                window.location.reload(); // Обновление страницы для отображения измененных данных
+            } else {
+                alert(data.error || "Ошибка при сохранении изменений!");
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка:", error);
+        });
+});
+
   // Открытие модального окна для редактирования категории
-  function openEditCategoryModal(categoryName) {
-          if (!categoryName) {
-              console.error("Имя категории отсутствует.");
-              return;
-          }
-          // Получаем данные категории через AJAX
-          fetch(`/api/category/${categoryName}/`)
-              .then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      // Заполняем модальное окно данными категории
-                      document.getElementById("editCategoryName").value = data.category.name;
-                      document.getElementById("editCategoryColor").value = data.category.color;
-                      // Отображаем модальное окно
-                      document.getElementById("editCategoryModal").style.display = "block";
-                  } else {
-                      console.error("Ошибка при получении данных категории:", data.error);
-                  }
-              })
-              .catch(error => {
-                  console.error("Ошибка:", error);
-              });
-      }
+function openEditCategoryModal(categoryId) {
+    if (!categoryId) {
+        console.error("ID категории отсутствует.");
+        return;
+    }
+    fetch(`/api/category/${categoryId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Заполняем модальное окно данными категории
+                document.getElementById("editCategoryName").value = data.category.name;
+                document.getElementById("editCategoryColor").value = data.category.color;
+                document.getElementById("editCategoryForm").setAttribute("data-id", categoryId);
+                // Отображаем модальное окно
+                document.getElementById("editCategoryModal").style.display = "block";
+            } else {
+                console.error("Ошибка при получении данных категории:", data.error);
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка:", error);
+        });
+}
+
   // Удаление категории через AJAX
-  document.getElementById("deleteCategoryBtn").addEventListener("click", function() {
-      const categoryName = document.getElementById("editCategoryName").value;
-      if (confirm(`Вы уверены, что хотите удалить категорию "${categoryName}"?`)) {
-          fetch(`/api/category/${categoryName}/delete/`, {
-                  method: "DELETE",
-                  headers: {
-                      "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
-                  },
-              })
-              .then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      // Убираем категорию и обновляем интерфейс
-                      window.location.reload();
-                  }
-              })
-              .catch(error => console.error("Ошибка:", error));
-      }
-  });
+document.getElementById("deleteCategoryBtn").addEventListener("click", function() {
+    const categoryId = document.getElementById("editCategoryForm").getAttribute("data-id");
+    if (confirm(`Вы уверены, что хотите удалить категорию?`)) {
+        fetch(`/api/category/${categoryId}/delete/`, {
+                method: "DELETE",
+                headers: {
+                    "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.error || "Ошибка при удалении категории!");
+                }
+            })
+            .catch(error => console.error("Ошибка:", error));
+    }
+});
+
   // Открытие модального окна
   const modal = document.getElementById("createCategoryModal");
   const btn1 = document.getElementById("createCategoryBtn1");

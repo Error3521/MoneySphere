@@ -112,10 +112,10 @@ def create_category(request):
 
 
 @csrf_exempt
-def update_category(request, category_name):
+def update_category(request, category_id):
     if request.method == "POST":
         try:
-            category = Category.objects.get(name=category_name, user=request.user)
+            category = Category.objects.get(id=category_id, user=request.user)
             category.name = request.POST.get("name")
             category.color = request.POST.get("color")
             category.is_expense = request.POST.get("is_expense") == "on"
@@ -128,15 +128,18 @@ def update_category(request, category_name):
             return JsonResponse({"success": False, "error": "Категория не найдена."})
 
 
-def get_category_data(request, category_name):
+
+def get_category_data(request, category_id):
     try:
-        category = Category.objects.get(name=category_name)
+        category = Category.objects.get(id=category_id, user=request.user)
         return JsonResponse({
             'success': True,
             'category': {
+                'id': category.id,
                 'name': category.name,
                 'value': category.value,
                 'color': category.color,
+                'is_expense': category.is_expense,
             }
         })
     except Category.DoesNotExist:
@@ -144,10 +147,10 @@ def get_category_data(request, category_name):
 
 
 @csrf_exempt
-def delete_category(request, category_name):
+def delete_category(request, category_id):
     if request.method == 'DELETE':
         try:
-            category = Category.objects.get(name=category_name)
+            category = Category.objects.get(id=category_id)
             category.delete()
             return JsonResponse({'success': True})
         except Category.DoesNotExist:
