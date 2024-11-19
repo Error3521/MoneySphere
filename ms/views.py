@@ -1,16 +1,19 @@
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic.edit import CreateView
-from django.urls import reverse_lazy
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Sum
-from django.http import JsonResponse
-from difflib import SequenceMatcher
-from .forms import CustomUserCreationForm, CategoryForm, TransactionForm, AccountForm
-from .models import Category, Transaction, Account
 import json
 import logging
+from difflib import SequenceMatcher
+
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse_lazy
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.edit import CreateView
+
+from .forms import CustomUserCreationForm, CategoryForm, TransactionForm, AccountForm
+from .models import Category, Transaction, Account
+
+logger = logging.getLogger(__name__)
 
 
 class SignUp(CreateView):
@@ -31,6 +34,14 @@ def home(request):
 
 def initial_page(request):
     return render(request, "ms/home/initial/initial.html")
+
+
+def is_name_similar(new_name, existing_names, threshold=0.8):
+    for existing_name in existing_names:
+        similarity = SequenceMatcher(None, new_name.lower(), existing_name.lower()).ratio()
+        if similarity >= threshold:
+            return True
+    return False
 
 
 @login_required
@@ -79,16 +90,6 @@ def categories_combined_view(request):
     })
 
 
-# Проверка схожести имени категории
-def is_name_similar(new_name, existing_names, threshold=0.8):
-    for existing_name in existing_names:
-        similarity = SequenceMatcher(None, new_name.lower(), existing_name.lower()).ratio()
-        if similarity >= threshold:
-            return True
-    return False
-
-
-# Обновленный метод для создания категории
 @login_required
 def create_category(request):
     if request.method == 'POST':
@@ -151,6 +152,86 @@ def delete_category(request, category_name):
             return JsonResponse({'success': True})
         except Category.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Категория не найдена'}, status=404)
+
+
+@login_required
+def filter_categories(request):
+    filters = {}
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    year = request.GET.get('year')
+    month = request.GET.get('month')
+
+    if start_date and end_date:
+        filters['transaction_date__range'] = (start_date, end_date)
+    elif year and month:
+        filters['transaction_date__year'] = year
+        filters['transaction_date__month'] = month
+    elif year:
+        filters['transaction_date__year'] = year
+
+    # Получаем категории пользователя
+    categories = Category.objects.filter(user=request.user)
+
+    # Рассчитываем суммы транзакций по категориям и обновляем их данные
+    category_data = []
+    for category in categories:
+        total = Transaction.objects.filter(
+            category=category,
+            user=request.user,
+            **filters
+        ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+        # Обновляем категории на сервере (пересчитываем значения или другие данные)
+        category.value = float(total)
+        category.save()
+
+        category_data.append({
+            'id': category.id,
+            'name': category.name,
+            'value': category.value,  # Значение уже обновлено на сервере
+            'color': category.color,
+        })
+
+    return JsonResponse({'success': True, 'categories': category_data})
+
+
+@csrf_exempt
+def update_categories(request):
+    if request.method == 'POST':
+        try:
+            # Парсим данные из запроса
+            data = json.loads(request.body)
+            categories = data.get('categories')
+
+            if not categories:
+                return JsonResponse({'success': False, 'error': 'No categories data provided'})
+
+            # Обрабатываем и обновляем каждую категорию
+            for category_data in categories:
+                category_name = category_data.get('name')
+                category_value = category_data.get('value')
+                category_color = category_data.get('color')
+
+                # Проверяем, что все необходимые данные переданы
+                if not category_name or category_value is None or category_color is None:
+                    return JsonResponse({'success': False, 'error': 'Missing data for category'})
+
+                # Ищем категорию по имени и обновляем её
+                category = Category.objects.filter(name=category_name).first()
+                if category:
+                    category.value = category_value
+                    category.color = category_color
+                    category.save()
+                else:
+                    return JsonResponse({'success': False, 'error': f'Category {category_name} not found'})
+
+            return JsonResponse({'success': True})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
 @login_required
@@ -250,6 +331,44 @@ def delete_transaction(request, transaction_id):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
+@login_required
+def filter_transactions(request):
+    filters = {}
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    year = request.GET.get('year')
+    month = request.GET.get('month')
+
+    if start_date and end_date:
+        filters['transaction_date__range'] = (start_date, end_date)
+    elif year and month:
+        filters['transaction_date__year'] = year
+        filters['transaction_date__month'] = month
+    elif year:
+        filters['transaction_date__year'] = year
+
+    transactions = Transaction.objects.filter(user=request.user).filter(**filters)
+
+    # Сериализация данных с учетом вложенных полей
+    transactions_data = [
+        {
+            'id': tx.id,
+            'amount': tx.amount,
+            'transaction_date': tx.transaction_date,
+            'description': tx.description,
+            'category': {'id': tx.category.id, 'name': tx.category.name} if tx.category else None,
+            'account': {
+                'id': tx.account.id if tx.account else None,
+                'name': tx.account.name if tx.account else 'Не указан',
+                'currency': tx.account.currency_code if tx.account and hasattr(tx.account,
+                                                                               'currency_code') else 'Не указана'
+            } if tx.account else None,
+        }
+        for tx in transactions
+    ]
+
+    return JsonResponse({'success': True, 'transactions': transactions_data})
+
 
 @login_required
 def accounts_view(request):
@@ -292,126 +411,4 @@ def delete_account(request, account_id):
     if request.method == 'DELETE':
         account.delete()
         return JsonResponse({'success': True})
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
-
-logger = logging.getLogger(__name__)
-
-
-@login_required
-def filter_transactions(request):
-    filters = {}
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    year = request.GET.get('year')
-    month = request.GET.get('month')
-
-    if start_date and end_date:
-        filters['transaction_date__range'] = (start_date, end_date)
-    elif year and month:
-        filters['transaction_date__year'] = year
-        filters['transaction_date__month'] = month
-    elif year:
-        filters['transaction_date__year'] = year
-
-    transactions = Transaction.objects.filter(user=request.user).filter(**filters)
-
-    # Сериализация данных с учетом вложенных полей
-    transactions_data = [
-        {
-            'id': tx.id,
-            'amount': tx.amount,
-            'transaction_date': tx.transaction_date,
-            'description': tx.description,
-            'category': {'id': tx.category.id, 'name': tx.category.name} if tx.category else None,
-            'account': {
-                'id': tx.account.id if tx.account else None,
-                'name': tx.account.name if tx.account else 'Не указан',
-                'currency': tx.account.currency_code if tx.account and hasattr(tx.account,
-                                                                               'currency_code') else 'Не указана'
-            } if tx.account else None,
-        }
-        for tx in transactions
-    ]
-
-    return JsonResponse({'success': True, 'transactions': transactions_data})
-
-
-@login_required
-def filter_categories(request):
-    filters = {}
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    year = request.GET.get('year')
-    month = request.GET.get('month')
-
-    if start_date and end_date:
-        filters['transaction_date__range'] = (start_date, end_date)
-    elif year and month:
-        filters['transaction_date__year'] = year
-        filters['transaction_date__month'] = month
-    elif year:
-        filters['transaction_date__year'] = year
-
-    # Получаем категории пользователя
-    categories = Category.objects.filter(user=request.user)
-
-    # Рассчитываем суммы транзакций по категориям и обновляем их данные
-    category_data = []
-    for category in categories:
-        total = Transaction.objects.filter(
-            category=category,
-            user=request.user,
-            **filters
-        ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
-
-        # Обновляем категории на сервере (пересчитываем значения или другие данные)
-        category.value = float(total)
-        category.save()
-
-        category_data.append({
-            'id': category.id,
-            'name': category.name,
-            'value': category.value,  # Значение уже обновлено на сервере
-            'color': category.color,
-        })
-
-    return JsonResponse({'success': True, 'categories': category_data})
-
-
-@csrf_exempt
-def update_categories(request):
-    if request.method == 'POST':
-        try:
-            # Парсим данные из запроса
-            data = json.loads(request.body)
-            categories = data.get('categories')
-
-            if not categories:
-                return JsonResponse({'success': False, 'error': 'No categories data provided'})
-
-            # Обрабатываем и обновляем каждую категорию
-            for category_data in categories:
-                category_name = category_data.get('name')
-                category_value = category_data.get('value')
-                category_color = category_data.get('color')
-
-                # Проверяем, что все необходимые данные переданы
-                if not category_name or category_value is None or category_color is None:
-                    return JsonResponse({'success': False, 'error': 'Missing data for category'})
-
-                # Ищем категорию по имени и обновляем её
-                category = Category.objects.filter(name=category_name).first()
-                if category:
-                    category.value = category_value
-                    category.color = category_color
-                    category.save()
-                else:
-                    return JsonResponse({'success': False, 'error': f'Category {category_name} not found'})
-
-            return JsonResponse({'success': True})
-
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
