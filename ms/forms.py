@@ -1,7 +1,9 @@
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User
-from .models import Category, Account, Transaction
 from django import forms
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.core.exceptions import ValidationError
+
+from .models import Category, Account, Transaction
+from .models import User
 
 
 class TransactionForm(forms.ModelForm):
@@ -17,27 +19,44 @@ class TransactionForm(forms.ModelForm):
         }
 
 
-
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ('email',)
+
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = User
         fields = ('email',)
 
+
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ['name', 'color', 'is_expense']  # Добавляем поле is_expense
+        fields = ['name', 'color', 'is_expense']
         widgets = {
             'is_expense': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'color': forms.TextInput(attrs={'type': 'color', 'class': 'form-control'}),
         }
         labels = {
             'is_expense': 'Это расход?',
+            'color': 'Цвет категории',
+            'name': 'Название категории',
         }
+
+    def __init__(self, *args, **kwargs):
+        # Передаем пользователя при создании формы
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip().lower()
+        # Проверяем уникальность имени для конкретного пользователя
+        if Category.objects.filter(user=self.user, name__iexact=name).exists():
+            raise ValidationError("Категория с таким именем уже существует.")
+        return name
+
 
 class AccountForm(forms.ModelForm):
     class Meta:

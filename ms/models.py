@@ -51,6 +51,14 @@ class Category(models.Model):
     color = models.CharField(max_length=7, default='#000000')  # HEX цвет
     is_expense = models.BooleanField(default=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'name'],
+                name='unique_category_per_user'
+            )
+        ]
+
     def __str__(self):
         return self.name
 

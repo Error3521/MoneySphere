@@ -1,4 +1,3 @@
-import json
 import logging
 from difflib import SequenceMatcher
 
@@ -94,21 +93,32 @@ def categories_combined_view(request):
 def create_category(request):
     if request.method == 'POST':
         form = CategoryForm(request.POST)
+
         if form.is_valid():
-            new_category_name = form.cleaned_data['name'].strip().lower()  # Нормализация имени
+            name = form.cleaned_data['name']
 
-            # Проверяем существование категории с таким именем для текущего пользователя
-            if Category.objects.filter(user=request.user, name__iexact=new_category_name).exists():
-                return JsonResponse({"success": False, "error": "Категория с таким именем уже существует."})
+            # Проверяем существование категории с таким именем у текущего пользователя
+            if Category.objects.filter(user=request.user, name=name).exists():
+                return JsonResponse({
+                    "success": False,
+                    "error": "Категория с таким именем уже существует у вас."
+                }, status=400)
 
-            category = form.save(commit=False)
-            category.user = request.user
-            category.value = 0  # Устанавливаем значение value программно, например, на 0
-            category.save()
+            try:
+                category = form.save(commit=False)
+                category.user = request.user
+                category.value = 0  # Устанавливаем значение value программно
+                category.save()
 
-            return JsonResponse({"success": True})
+                return JsonResponse({"success": True})
 
-    return JsonResponse({"success": False, "error": "Ошибка при создании категории."})
+            except IntegrityError:
+                return JsonResponse({
+                    "success": False,
+                    "error": "Ошибка при сохранении категории."
+                }, status=500)
+
+    return JsonResponse({"success": False, "error": "Ошибка при создании категории."}, status=400)
 
 
 @csrf_exempt
@@ -116,17 +126,21 @@ def update_category(request, category_id):
     if request.method == "POST":
         try:
             category = Category.objects.get(id=category_id, user=request.user)
-            category.name = request.POST.get("name")
+            new_name = request.POST.get("name").strip().lower()
+
+            # Проверяем наличие категории с таким же именем у пользователя
+            if Category.objects.filter(user=request.user, name__iexact=new_name).exclude(id=category_id).exists():
+                return JsonResponse({"success": False, "error": "Категория с таким именем уже существует."})
+
+            category.name = new_name
             category.color = request.POST.get("color")
             category.is_expense = request.POST.get("is_expense") == "on"
             category.value = category.value
-
             category.save()
 
             return JsonResponse({"success": True})
         except Category.DoesNotExist:
             return JsonResponse({"success": False, "error": "Категория не найдена."})
-
 
 
 def get_category_data(request, category_id):
@@ -199,42 +213,64 @@ def filter_categories(request):
     return JsonResponse({'success': True, 'categories': category_data})
 
 
-@csrf_exempt
-def update_categories(request):
+@login_required
+def update_transaction(request, transaction_id):
+    transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+
     if request.method == 'POST':
-        try:
-            # Парсим данные из запроса
-            data = json.loads(request.body)
-            categories = data.get('categories')
+        form = TransactionForm(request.POST, instance=transaction)
+        if form.is_valid():
+            # Сохраняем старые значения
+            old_account = transaction.account
+            old_category = transaction.category
+            old_amount = transaction.amount
 
-            if not categories:
-                return JsonResponse({'success': False, 'error': 'No categories data provided'})
+            # Получаем новые значения из формы
+            updated_transaction = form.save(commit=False)
+            new_account = updated_transaction.account
+            new_category = updated_transaction.category
+            new_amount = updated_transaction.amount
 
-            # Обрабатываем и обновляем каждую категорию
-            for category_data in categories:
-                category_name = category_data.get('name')
-                category_value = category_data.get('value')
-                category_color = category_data.get('color')
+            # Обработка старых данных для счёта и категории
+            if old_category.is_expense:
+                old_account.balance += old_amount  # Возвращаем старое значение к счету
+                old_category.value -= old_amount  # Уменьшаем значение категории
+            else:
+                old_account.balance -= old_amount  # Убираем старое значение из счёта
+                old_category.value -= old_amount  # Уменьшаем значение категории
 
-                # Проверяем, что все необходимые данные переданы
-                if not category_name or category_value is None or category_color is None:
-                    return JsonResponse({'success': False, 'error': 'Missing data for category'})
+            # Сохранение старых данных
+            old_account.save()
+            old_category.save()
 
-                # Ищем категорию по имени и обновляем её
-                category = Category.objects.filter(name=category_name).first()
-                if category:
-                    category.value = category_value
-                    category.color = category_color
-                    category.save()
-                else:
-                    return JsonResponse({'success': False, 'error': f'Category {category_name} not found'})
+            # Применение новых данных
+            if new_category.is_expense:
+                new_account.balance += old_amount  # Добавляем старое значение транзакции
+                new_account.balance -= new_amount  # Вычитаем новое значение транзакции
+                new_category.value += new_amount  # Увеличиваем значение категории
+            else:
+                new_account.balance -= old_amount  # Убираем старое значение транзакции
+                new_account.balance += new_amount  # Добавляем новое значение транзакции
+                new_category.value += new_amount  # Увеличиваем значение категории
+
+            # Сохранение новых данных
+            new_account.save()
+            new_category.save()
+
+            # Сохранение обновлённой транзакции
+            updated_transaction.save()
 
             return JsonResponse({'success': True})
-
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors})
+    else:
+        # Для отображения формы редактирования
+        accounts = Account.objects.filter(user=request.user)
+        categories = Category.objects.filter(user=request.user)
+        form = TransactionForm(instance=transaction)
+        form.fields['account'].queryset = accounts
+        form.fields['category'].queryset = categories
+        return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
 
 
 @login_required
@@ -279,50 +315,112 @@ def create_transaction(request):
     return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
 
 
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+
+
+def process_transaction_change(old_transaction=None, new_transaction=None):
+    try:
+        account_balance = None
+        category_value = None
+
+        # Шаг 1: Откат старой транзакции
+        if old_transaction:
+            account_balance = old_transaction.account.balance
+            category_value = old_transaction.category.value
+            amount = old_transaction.amount
+
+            if old_transaction.category.is_expense:
+                account_balance += amount
+                category_value -= amount
+            else:
+                account_balance -= amount
+                category_value -= amount
+
+            logging.info(
+                f"Откат старой транзакции: account_balance={account_balance}, category_value={category_value}, "
+                f"amount={amount}"
+            )
+
+        # Шаг 2: Применение новой транзакции
+        if new_transaction:
+            if account_balance is None:
+                account_balance = new_transaction.account.balance
+            if category_value is None:
+                category_value = new_transaction.category.value
+            amount = new_transaction.amount
+
+            if new_transaction.category.is_expense:
+                account_balance -= amount
+                category_value += amount
+            else:
+                account_balance += amount
+                category_value += amount
+
+            logging.info(
+                f"Применение новой транзакции: account_balance={account_balance}, category_value={category_value}, "
+                f"amount={amount}"
+            )
+
+        # Шаг 3: Обновление балансов
+        if old_transaction or new_transaction:
+            if old_transaction:
+                old_transaction.account.balance = account_balance
+                old_transaction.category.value = category_value
+                old_transaction.account.save()
+                old_transaction.category.save()
+            elif new_transaction:
+                new_transaction.account.balance = account_balance
+                new_transaction.category.value = category_value
+                new_transaction.account.save()
+                new_transaction.category.save()
+
+        return True
+    except Exception as e:
+        logging.error(f"Ошибка при обработке транзакции: {e}", exc_info=True)
+        return False
+
+
+
+
+
+
+
 @login_required
 def update_transaction(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
 
     if request.method == 'POST':
-        old_amount = transaction.amount
-        old_category = transaction.category
         form = TransactionForm(request.POST, instance=transaction)
-
         if form.is_valid():
-            updated_transaction = form.save(commit=False)
-            updated_transaction.user = request.user
+            try:
+                # Сохраняем старую транзакцию
+                old_transaction = Transaction.objects.get(id=transaction_id)
 
-            account = updated_transaction.account
-            category = updated_transaction.category
-            new_amount = updated_transaction.amount
+                # Создаём новую транзакцию из формы
+                updated_transaction = form.save(commit=False)
 
-            amount_diff = new_amount - old_amount
+                # Откат старой транзакции и применение новой
+                success = process_transaction_change(old_transaction=old_transaction, new_transaction=updated_transaction)
 
-            if old_category.is_expense:
-                account.balance += old_amount
-            else:
-                account.balance -= old_amount
-
-            if category.is_expense:
-                category.value -= amount_diff
-                account.balance -= amount_diff
-            else:
-                category.value += amount_diff
-                account.balance += amount_diff
-
-            account.save()
-            category.save()
-            updated_transaction.save()
-
-            return JsonResponse({'success': True})
-        return JsonResponse({'success': False, 'errors': form.errors})
+                if success:
+                    updated_transaction.save()
+                    logging.info(f"Транзакция успешно обновлена: ID={transaction_id}")
+                    return JsonResponse({'success': True})
+                else:
+                    return JsonResponse({'success': False, 'error': 'Ошибка обработки транзакции'})
+            except Exception as e:
+                logging.error(f"Ошибка при обновлении транзакции: {e}", exc_info=True)
+                return JsonResponse({'success': False, 'error': str(e)})
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors})
     else:
-        accounts = Account.objects.filter(user=request.user)
-        categories = Category.objects.filter(user=request.user)
+        # Для отображения формы редактирования
         form = TransactionForm(instance=transaction)
-        form.fields['account'].queryset = accounts
-        form.fields['category'].queryset = categories
-    return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
+        return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
+
 
 
 @login_required
