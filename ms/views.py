@@ -1,17 +1,21 @@
+import json
 import logging
+from decimal import Decimal
 from difflib import SequenceMatcher
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.edit import CreateView
 
 from .forms import CustomUserCreationForm, CategoryForm, TransactionForm, AccountForm
-from .models import Category, Transaction, Account
+from .models import Category, Transaction, Currency, Account
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -275,8 +279,12 @@ def update_transaction(request, transaction_id):
 
 @login_required
 def transactions_view(request):
+    accounts = Account.objects.filter(user=request.user)  # Получение счетов
     transactions = Transaction.objects.filter(user=request.user)
-    return render(request, 'ms/home/initial/transaction/transaction.html', {'transactions': transactions})
+    return render(request, 'ms/home/initial/transaction/transaction.html', {
+        'transactions': transactions,
+        'accounts': accounts,  # Добавляем счета в контекст
+    })
 
 
 @login_required
@@ -313,12 +321,6 @@ def create_transaction(request):
         form.fields['account'].queryset = accounts
         form.fields['category'].queryset = categories
     return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
-
-
-import logging
-
-# Настройка логирования
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
 def process_transaction_change(old_transaction=None, new_transaction=None):
@@ -508,3 +510,73 @@ def delete_account(request, account_id):
         account.delete()
         return JsonResponse({'success': True})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def convert_currency(request):
+    try:
+        # Получаем параметры из GET-запроса
+        from_currency = request.GET.get('from')
+        to_currency = request.GET.get('to')
+        amount = Decimal(request.GET.get('amount', 0))
+
+        # Проверяем, что все параметры переданы
+        if not from_currency or not to_currency:
+            return JsonResponse({'error': 'Missing currency parameters'}, status=400)
+
+        # Получаем объекты валют
+        from_currency_obj = Currency.objects.get(code=from_currency)
+        to_currency_obj = Currency.objects.get(code=to_currency)
+
+        # Расчет конверсии
+        converted_amount = amount * from_currency_obj.rate_to_base / to_currency_obj.rate_to_base
+
+        # Возврат результата
+        return JsonResponse({'converted_amount': str(converted_amount)})
+
+    except Currency.DoesNotExist as e:
+        logger.error(f"Currency not found: {e}")
+        return JsonResponse({'error': 'Currency not found'}, status=400)
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
+def transfer_between_accounts(request):
+    if request.method == 'POST':
+        try:
+            # Парсим входные данные
+            data = json.loads(request.body)
+            source_account = get_object_or_404(Account, id=data['source_account'], user=request.user)
+            target_account = get_object_or_404(Account, id=data['target_account'], user=request.user)
+            amount = Decimal(data['amount'])
+
+            if source_account == target_account:
+                return JsonResponse({'error': 'Accounts must be different'}, status=400)
+
+            if source_account.balance < amount:
+                return JsonResponse({'error': 'Insufficient funds'}, status=400)
+
+            # Учитываем курсы валют
+            source_rate = source_account.currency.rate_to_base
+            target_rate = target_account.currency.rate_to_base
+
+            # Конвертация суммы в целевую валюту
+            converted_amount = amount * (source_rate / target_rate)
+
+            # Обновляем балансы
+            source_account.balance -= amount
+            target_account.balance += converted_amount
+            source_account.save()
+            target_account.save()
+
+            return JsonResponse({
+                'success': True,
+                'converted_amount': str(converted_amount),
+                'source_account_balance': str(source_account.balance),
+                'target_account_balance': str(target_account.balance)
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
