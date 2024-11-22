@@ -307,7 +307,7 @@
               </dl>
             </div>
             <div class="categories"> {% for category in expense_categorie %}
-              <div class="category income-category" data-id="{{ category.id }}" onclick="openEditCategoryModal('{{ category.id }}')" style="background-color: {{ category.color }};"> {{ category.name }}
+              <div class="category expense-category" data-id="{{ category.id }}" onclick="openEditCategoryModal('{{ category.id }}')" style="background-color: {{ category.color }};"> {{ category.name }}
                 <div class="category-value">{{ category.value }}₽</div>
               </div> {% empty %} {% endfor %} </div>
           </div>
