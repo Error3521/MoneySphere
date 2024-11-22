@@ -4,6 +4,7 @@ from decimal import Decimal
 from difflib import SequenceMatcher
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -14,6 +15,7 @@ from django.views.generic.edit import CreateView
 
 from .forms import CustomUserCreationForm, CategoryForm, TransactionForm, AccountForm
 from .models import Category, Transaction, Currency, Account
+from .models import Transfer
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -543,40 +545,150 @@ def convert_currency(request):
         return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
+# Обновлённый метод transfer_between_accounts
 def transfer_between_accounts(request):
     if request.method == 'POST':
         try:
-            # Парсим входные данные
             data = json.loads(request.body)
-            source_account = get_object_or_404(Account, id=data['source_account'], user=request.user)
-            target_account = get_object_or_404(Account, id=data['target_account'], user=request.user)
+            source_account_id = data['source_account']
+            target_account_id = data['target_account']
             amount = Decimal(data['amount'])
 
-            if source_account == target_account:
-                return JsonResponse({'error': 'Accounts must be different'}, status=400)
+            source_account = get_object_or_404(Account, id=source_account_id, user=request.user)
+            target_account = get_object_or_404(Account, id=target_account_id, user=request.user)
 
             if source_account.balance < amount:
-                return JsonResponse({'error': 'Insufficient funds'}, status=400)
+                return JsonResponse({'error': 'Недостаточно средств'}, status=400)
 
-            # Учитываем курсы валют
+            # Рассчитываем конвертированную сумму
             source_rate = source_account.currency.rate_to_base
             target_rate = target_account.currency.rate_to_base
-
-            # Конвертация суммы в целевую валюту
             converted_amount = amount * (source_rate / target_rate)
 
-            # Обновляем балансы
-            source_account.balance -= amount
-            target_account.balance += converted_amount
-            source_account.save()
-            target_account.save()
+            with transaction.atomic():
+                source_account.balance -= amount
+                target_account.balance += converted_amount
+                source_account.save()
+                target_account.save()
 
-            return JsonResponse({
-                'success': True,
-                'converted_amount': str(converted_amount),
-                'source_account_balance': str(source_account.balance),
-                'target_account_balance': str(target_account.balance)
-            })
+                # Добавляем запись в Transfer
+                Transfer.objects.create(
+                    source_account=source_account,
+                    target_account=target_account,
+                    amount=converted_amount,
+                    description=f"Перевод {amount} {source_account.currency.code} -> {converted_amount} {target_account.currency.code}"
+                )
+
+            return JsonResponse({'success': True})
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Неверный метод запроса'}, status=405)
+
+
+@csrf_exempt
+def transfer_transaction(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        source_account_id = data.get('source_account')
+        target_account_id = data.get('target_account')
+        amount = data.get('amount')
+
+        if not (source_account_id and target_account_id and amount):
+            return JsonResponse({"success": False, "error": "Недостаточно данных для перевода."})
+
+        try:
+            source_account = Account.objects.get(id=source_account_id)
+            target_account = Account.objects.get(id=target_account_id)
+
+            with transaction.atomic():
+                # Транзакция списания
+                Transaction.objects.create(
+                    account=source_account,
+                    amount=-float(amount),
+                    category="Перевод",
+                    description=f"Перевод на счёт {target_account.name}",
+                )
+
+                # Транзакция пополнения
+                Transaction.objects.create(
+                    account=target_account,
+                    amount=float(amount),
+                    category="Перевод",
+                    description=f"Перевод со счёта {source_account.name}",
+                )
+
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+
+def transaction_list(request):
+    transactions = Transaction.objects.all().select_related('account', 'category')
+    result = [
+        {
+            "id": tx.id,
+            "category": tx.category.name if tx.category else "Без категории",
+            "account": {"name": tx.account.name, "currency": tx.account.currency.code},
+            "amount": tx.amount,
+            "transaction_date": tx.transaction_date.isoformat(),
+            "description": tx.description,
+        }
+        for tx in transactions
+    ]
+    return JsonResponse({"success": True, "transactions": result})
+
+
+def transfer_list(request):
+    transfers = Transfer.objects.all().select_related('source_account', 'target_account')
+    result = [
+        {
+            "id": transfer.id,
+            "source_account": {
+                "name": transfer.source_account.name,
+                "currency": transfer.source_account.currency.code,
+            },
+            "target_account": {
+                "name": transfer.target_account.name,
+                "currency": transfer.target_account.currency.code,
+            },
+            "amount": transfer.amount,
+            "transaction_date": transfer.transaction_date.isoformat(),
+            "description": transfer.description,
+        }
+        for transfer in transfers
+    ]
+    return JsonResponse({"success": True, "transfers": result})
+
+
+@csrf_exempt
+def delete_transfer(request, transfer_id):
+    if request.method == 'DELETE':
+        try:
+            transfer = get_object_or_404(Transfer, id=transfer_id)
+
+            source_account = transfer.source_account
+            target_account = transfer.target_account
+            converted_amount = transfer.amount
+
+            # Рассчитываем обратное преобразование суммы
+            source_rate = source_account.currency.rate_to_base
+            target_rate = target_account.currency.rate_to_base
+            original_amount = converted_amount * (target_rate / source_rate)
+
+            with transaction.atomic():
+                # Возврат средств
+                source_account.balance += original_amount
+                target_account.balance -= converted_amount
+
+                # Сохранение изменений
+                source_account.save()
+                target_account.save()
+
+                # Удаление записи о переводе
+                transfer.delete()
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Неверный метод запроса'}, status=405)

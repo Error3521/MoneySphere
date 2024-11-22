@@ -121,3 +121,14 @@ class Transaction(models.Model):
     @staticmethod
     def filter_by_range(user, start_date, end_date):
         return Transaction.objects.filter(user=user, transaction_date__range=(start_date, end_date))
+
+
+class Transfer(models.Model):
+    source_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='outgoing_transfers')
+    target_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='incoming_transfers')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_date = models.DateField(auto_now_add=True)
+    description = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"Transfer {self.id}: {self.amount} from {self.source_account.name} to {self.target_account.name}"

@@ -151,9 +151,7 @@
     {% endfor %}
     </tbody>
   </table>
-</div>
-
-<!-- Модальное окно -->
+  <!-- Модальное окно -->
 <div aria-hidden="true" aria-labelledby="transactionModalLabel" class="modal fade" id="transactionModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -168,6 +166,91 @@
   </div>
 </div>
 
+<h2>Переводы между счетами</h2>
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Исходный счёт</th>
+        <th>Целевой счёт</th>
+        <th>Сумма</th>
+        <th>Дата</th>
+        <th>Описание</th>
+        <th>Действия</th>
+    </tr>
+    </thead>
+    <tbody id="transferTableBody">
+    </tbody>
+</table>
+</div>
+
+
+<script>
+function loadTransfers() {
+    fetch('/initial/transfer/list/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const tableBody = document.getElementById('transferTableBody');
+                tableBody.innerHTML = '';
+                data.transfers.forEach(transfer => {
+                    const row = `
+                        <tr>
+                            <td>${transfer.id}</td>
+                            <td>${transfer.source_account.name} (${transfer.source_account.currency})</td>
+                            <td>${transfer.target_account.name} (${transfer.target_account.currency})</td>
+                            <td>${transfer.amount}</td>
+                            <td>${transfer.transaction_date}</td>
+                            <td>${transfer.description || '—'}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteTransfer(${transfer.id})">Удалить</button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML('beforeend', row);
+                });
+            } else {
+                console.error('Ошибка загрузки переводов:', data.error);
+            }
+        })
+        .catch(err => console.error('Ошибка запроса:', err));
+}
+
+function deleteTransfer(transferId) {
+    if (!confirm('Вы уверены, что хотите удалить перевод?')) return;
+
+    fetch(`/initial/transfer/delete/${transferId}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCsrfToken(), // Убедитесь, что CSRF-токен передается, если используется
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadTransfers(); // Обновляем список переводов
+        } else {
+            alert(`Ошибка удаления: ${data.error}`);
+        }
+    })
+    .catch(err => console.error('Ошибка запроса:', err));
+}
+
+
+// Функция для получения CSRF-токена
+function getCsrfToken() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [key, value] = cookie.trim().split('=');
+        if (key === name) return decodeURIComponent(value);
+    }
+    return '';
+}
+
+// Загружаем переводы при загрузке страницы
+document.addEventListener('DOMContentLoaded', loadTransfers);
+</script>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -195,40 +278,68 @@ function submitTransfer() {
     const button = document.querySelector('.btn-primary');
     button.disabled = true;
 
+    const sourceAccount = document.getElementById('sourceAccount').value;
+    const targetAccount = document.getElementById('targetAccount').value;
+    const transferAmount = document.getElementById('transferAmount').value;
+
+    if (!sourceAccount || !targetAccount || !transferAmount) {
+        alert('Пожалуйста, заполните все поля.');
+        button.disabled = false;
+        return;
+    }
+
+    if (sourceAccount === targetAccount) {
+        alert('Счёта должны быть разными.');
+        button.disabled = false;
+        return;
+    }
+
     const formData = {
-        source_account: document.getElementById('sourceAccount').value,
-        target_account: document.getElementById('targetAccount').value,
-        amount: document.getElementById('transferAmount').value,
+        source_account: sourceAccount,
+        target_account: targetAccount,
+        amount: transferAmount,
     };
 
     console.log('Отправка данных: ', formData);
 
     fetch('/initial/transaction/transfer/', {
-method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-    },
-    body: JSON.stringify(formData),
-})
-.then(response => {
-    console.log('Статус ответа:', response.status);
-    return response.json();
-})
-.then(data => {
-    console.log('Ответ от сервера:', data);
-    button.disabled = false;
-    if (data.success) {
-        location.reload();
-    } else {
-        alert('Ошибка перевода: ' + data.error);
-    }
-})
-.catch(err => {
-    console.error('Ошибка запроса:', err);
-    button.disabled = false;
-});
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify(formData),
+    })
+    .then(response => response.json())
+    .then(data => {
+        button.disabled = false;
+        if (data.success) {
+            alert('Перевод успешно выполнен!');
+            loadTransfers(); // Обновляем список переводов
+        } else {
+            alert('Ошибка перевода: ' + data.error);
+        }
+    })
+    .catch(err => {
+        console.error('Ошибка запроса:', err);
+        button.disabled = false;
+        alert('Произошла ошибка. Попробуйте позже.');
+    });
 }
+
+function updateTransactions() {
+    fetch('/initial/transfer/list/') // Эндпоинт для получения всех транзакций
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateTransactionList(data.transactions);
+            } else {
+                console.error('Ошибка обновления транзакций:', data.error);
+            }
+        })
+        .catch(err => console.error('Ошибка запроса обновления транзакций:', err));
+}
+
 
 
 

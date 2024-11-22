@@ -23,6 +23,8 @@ urlpatterns = [
     path('initial/transaction/filter/', views.filter_transactions, name='filter_transactions'),
     path('api/currency/convert/', views.convert_currency, name='convert_currency'),
     path('initial/transaction/transfer/', views.transfer_between_accounts, name='transfer_between_accounts'),
+    path('initial/transfer/list/', views.transfer_list, name='transfer_list'),
+    path('initial/transfer/delete/<int:transfer_id>/', views.delete_transfer, name='delete_transfer'),
 
     path('initial/accounts/', views.accounts_view, name='accounts'),
     path('initial/accounts/create/', views.create_account, name='create_account'),
