@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+{% load form_filters %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+<form id="transactionForm">
+    {% csrf_token %}
+    {{ form.category|add_class:"form-control" }}
+    {{ form.account|add_class:"form-control" }}
+    {{ form.amount|add_class:"form-control" }}
+    {{ form.transaction_date|add_class:"form-control" }}
+    {{ form.description|add_class:"form-control" }}
+    <button type="submit" class="btn btn-success">Сохранить</button>
+</form>
+
+
+</body>
+</html>
