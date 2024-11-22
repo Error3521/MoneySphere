@@ -61,9 +61,9 @@ class CategoryForm(forms.ModelForm):
 class AccountForm(forms.ModelForm):
     class Meta:
         model = Account
-        fields = ['name', 'balance', 'currency_code']
+        fields = ['name', 'balance', 'currency']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'balance': forms.NumberInput(attrs={'class': 'form-control'}),
-            'currency_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'currency': forms.Select(attrs={'class': 'form-control'}),  # Выпадающий список
         }

@@ -383,11 +383,6 @@ def process_transaction_change(old_transaction=None, new_transaction=None):
         return False
 
 
-
-
-
-
-
 @login_required
 def update_transaction(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
@@ -403,7 +398,8 @@ def update_transaction(request, transaction_id):
                 updated_transaction = form.save(commit=False)
 
                 # Откат старой транзакции и применение новой
-                success = process_transaction_change(old_transaction=old_transaction, new_transaction=updated_transaction)
+                success = process_transaction_change(old_transaction=old_transaction,
+                                                     new_transaction=updated_transaction)
 
                 if success:
                     updated_transaction.save()
@@ -420,7 +416,6 @@ def update_transaction(request, transaction_id):
         # Для отображения формы редактирования
         form = TransactionForm(instance=transaction)
         return render(request, 'ms/home/initial/transaction/transaction_form_partial.html', {'form': form})
-
 
 
 @login_required

@@ -62,19 +62,36 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+class Currency(models.Model):
+    code = models.CharField(max_length=3, unique=True)  # Код валюты (например, USD, EUR)
+    name = models.CharField(max_length=50)             # Название валюты (например, "Доллар США")
+    rate_to_base = models.DecimalField(                # Курс обмена к базовой валюте
+        max_digits=10, decimal_places=4, default=1.0,
+        help_text="Курс относительно базовой валюты (например, RUB=1.0)"
+    )
 
+    def __str__(self):
+        return f"{self.name} ({self.code})"
 # Модель счетов
 class Account(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accounts')
     name = models.CharField(max_length=50)
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    currency_code = models.CharField(max_length=3)
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.PROTECT,  # Защита от удаления валют, которые используются
+        null=True,                 # Разрешить пустые значения при создании (если нужно)
+        blank=True,                # Разрешить пустое значение в формах
+        default=1               # Можно указать ID валюты RUB, если она обязательна
+    )
 
     class Meta:
         unique_together = ('user', 'name')  # Уникальные счета для каждого пользователя
 
     def __str__(self):
-        return f"{self.name} ({self.currency_code})"
+        return f"{self.name} ({self.currency.code if self.currency else 'Без валюты'})"
+
+
 
 
 # Модель транзакций

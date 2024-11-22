@@ -2,25 +2,25 @@
 {% load form_filters %}
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Account Form</title>
+  <meta charset="UTF-8">
+  <title>Account Form</title>
 </head>
 <body>
 <form id="accountForm">
-    {% csrf_token %}
-    <div class="mb-3">
-        <label for="id_name" class="form-label">Название счёта</label>
-        {{ form.name|add_class:"form-control" }}
-    </div>
-    <div class="mb-3">
-        <label for="id_balance" class="form-label">Баланс</label>
-        {{ form.balance|add_class:"form-control" }}
-    </div>
-    <div class="mb-3">
-        <label for="id_currency_code" class="form-label">Валюта</label>
-        {{ form.currency_code|add_class:"form-control" }}
-    </div>
-    <button type="submit" class="btn btn-success">Сохранить</button>
+  {% csrf_token %}
+  <div class="mb-3">
+    <label class="form-label" for="id_name">Название счёта</label>
+    {{ form.name|add_class:"form-control" }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="id_balance">Баланс</label>
+    {{ form.balance|add_class:"form-control" }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="id_currency">Валюта</label>
+    {{ form.currency|add_class:"form-control" }}
+  </div>
+  <button class="btn btn-success" type="submit">Сохранить</button>
 </form>
 </body>
 </html>
