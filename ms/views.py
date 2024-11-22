@@ -140,13 +140,17 @@ def update_category(request, category_id):
 
             category.name = new_name
             category.color = request.POST.get("color")
-            category.is_expense = request.POST.get("is_expense") == "on"
-            category.value = category.value
+
+            # Преобразуем строку в булев тип
+            is_expense = request.POST.get("is_expense") == "True"
+            category.is_expense = is_expense
+
             category.save()
 
             return JsonResponse({"success": True})
         except Category.DoesNotExist:
             return JsonResponse({"success": False, "error": "Категория не найдена."})
+
 
 
 def get_category_data(request, category_id):

@@ -334,24 +334,36 @@
           </form>
         </div>
       </div>
-      <!-- Модальное окно для редактирования категории -->
-      <div class="modal" id="editCategoryModal">
-        <div class="modal-content"> <span class="close" id="closeEditModal">&times;</span>
-          <h2>Редактировать категорию</h2>
-          <form id="editCategoryForm" method="POST"> {% csrf_token %}
-            <label for="editCategoryName">Название категории:</label>
-            <input id="editCategoryName" name="name" required type="text">
-            <br>
-            <br>
-            <label for="editCategoryColor">Цвет:</label>
-            <input id="editCategoryColor" name="color" required type="color">
-            <br>
-            <br>
-            <button id="saveCategoryBtn" type="submit">Сохранить изменения</button>
-            <button id="deleteCategoryBtn" type="button">Удалить категорию</button>
-          </form>
-        </div>
-      </div>
+<!-- Модальное окно для редактирования категории -->
+<div class="modal" id="editCategoryModal">
+  <div class="modal-content">
+    <span class="close" id="closeEditModal">&times;</span>
+    <h2>Редактировать категорию</h2>
+    <form id="editCategoryForm" method="POST">
+      {% csrf_token %}
+      <label for="editCategoryName">Название категории:</label>
+      <input id="editCategoryName" name="name" required type="text">
+      <br><br>
+
+      <label for="editCategoryColor">Цвет:</label>
+      <input id="editCategoryColor" name="color" required type="color">
+      <br><br>
+
+      <!-- Добавляем выбор типа категории (доход или расход) -->
+      <label for="editCategoryType">Тип категории:</label>
+      <select id="editCategoryType" name="is_expense">
+        <option value="True">Расход</option>
+        <option value="False">Доход</option>
+      </select>
+      <br><br>
+
+      <button id="saveCategoryBtn" type="submit">Сохранить изменения</button>
+      <button id="deleteCategoryBtn" type="button">Удалить категорию</button>
+    </form>
+  </div>
+</div>
+
+
     </div>
     <script>
     // Закрытие модального окна при клике на крестик
