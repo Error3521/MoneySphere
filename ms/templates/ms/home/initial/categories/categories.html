@@ -229,7 +229,7 @@
             <div class="modal-body" id="filterCategoryContent"></div>
             <div class="modal-footer">
               <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
-              <button class="btn btn-primary" onclick="applyCategoryFilter()" type="button">Применить</button>
+              <button class="btn btn-primary" onclick="applyCategoryFilter(); reloadPage();" type="button">Применить</button>
             </div>
           </div>
         </div>
@@ -366,6 +366,12 @@
 
     </div>
     <script>
+  function reloadPage() {
+    setTimeout(function() {
+      location.reload();
+    }, 200);
+  }
+
     // Закрытие модального окна при клике на крестик
     document.getElementById('closeModal').addEventListener('click', function() {
       document.getElementById('createCategoryModal').style.display = 'none';
@@ -496,43 +502,75 @@
     positionCategories('expenseDiagram', 'expense-category'); // Расположить категории расходов
     let currentCategoryFilterType = null;
 
-    function applyCategoryFilter() {
-      let params = {};
-      if (currentCategoryFilterType === 'range') {
+document.addEventListener('DOMContentLoaded', function() {
+    const savedFilter = localStorage.getItem('categoryFilter');
+    if (savedFilter) {
+        const filterData = JSON.parse(savedFilter);
+        currentCategoryFilterType = filterData.type;
+
+        // Загружаем сохраненный фильтр
+        if (filterData.type === 'range') {
+            document.getElementById('category_start_date').value = filterData.start_date;
+            document.getElementById('category_end_date').value = filterData.end_date;
+        } else if (filterData.type === 'year') {
+            document.getElementById('filter_year').textContent = filterData.year;
+        } else if (filterData.type === 'month') {
+            const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+            document.getElementById('filter_month').textContent = `${monthNames[filterData.month - 1]} ${filterData.year}`;
+        }
+
+        // Применяем фильтр после загрузки страницы
+        applyCategoryFilter(); // Обновляем категории с учетом сохраненного фильтра
+        reloadPage();
+    } else {
+        // Если фильтр не был сохранен, показываем все категории
+        applyCategoryFilter();
+    }
+});
+
+// Функция для применения фильтра категорий
+function applyCategoryFilter() {
+    let params = {};
+    if (currentCategoryFilterType === 'range') {
         const startDate = document.getElementById('category_start_date').value;
         const endDate = document.getElementById('category_end_date').value;
         if (!startDate || !endDate) {
-          alert("Укажите оба значения для диапазона!");
-          return;
+            alert("Укажите оба значения для диапазона!");
+            return;
         }
         params = {
-          start_date: startDate,
-          end_date: endDate
+            start_date: startDate,
+            end_date: endDate
         };
-      } else if (currentCategoryFilterType === 'year') {
+        // Сохраняем фильтр в localStorage
+        localStorage.setItem('categoryFilter', JSON.stringify({ type: 'range', start_date: startDate, end_date: endDate }));
+    } else if (currentCategoryFilterType === 'year') {
         const year = document.getElementById('filter_year').textContent;
-        params = {
-          year
-        };
-      } else if (currentCategoryFilterType === 'month') {
+        params = { year };
+        // Сохраняем фильтр в localStorage
+        localStorage.setItem('categoryFilter', JSON.stringify({ type: 'year', year }));
+    } else if (currentCategoryFilterType === 'month') {
         const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
         const [month, year] = document.getElementById('filter_month').textContent.split(' ');
         const monthIndex = monthNames.indexOf(month) + 1; // Преобразуем в числовое значение (1-12)
-        params = {
-          year,
-          month: monthIndex
-        }; // Отправляем числовое значение
-      }
-      fetch(`/api/categories/filter/?${new URLSearchParams(params)}`).then(response => response.json()).then(data => {
-        if (data.success) {
-          updateCategoryList(data.categories);
-        } else {
-          alert("Ошибка фильтрации!");
-        }
-      }).catch(err => {
-        console.error("Ошибка:", err);
-      });
+        params = { year, month: monthIndex };
+        // Сохраняем фильтр в localStorage
+        localStorage.setItem('categoryFilter', JSON.stringify({ type: 'month', year, month: monthIndex }));
     }
+
+    // Выполняем запрос на сервер с фильтром
+    fetch(`/api/categories/filter/?${new URLSearchParams(params)}`).then(response => response.json()).then(data => {
+        if (data.success) {
+            updateCategoryList(data.categories); // Обновляем список категорий
+        } else {
+            alert("Ошибка фильтрации!");
+        }
+    }).catch(err => {
+        console.error("Ошибка:", err);
+    });
+}
+
+
 
     function saveUpdatedCategoriesToDatabase(categories) {
       // Формируем данные для отправки
@@ -563,36 +601,34 @@
       return csrfToken;
     }
 
-    function updateCategoryList(categories) {
-      // Находим элемент на странице, где будут отображаться категории
-      const categoryList = document.getElementById('categoryList');
-      const incomeCategories = document.getElementById('incomeCategories'); // Для доходных категорий
-      const expenseCategories = document.getElementById('expenseCategories'); // Для расходных категорий
-      // Очищаем текущий список категорий
-      categoryList.innerHTML = '';
-      incomeCategories.innerHTML = '';
-      expenseCategories.innerHTML = '';
-      // Обрабатываем полученные категории
-      categories.forEach(category => {
+function updateCategoryList(categories) {
+    const categoryList = document.getElementById('categoryList');
+    const incomeCategories = document.getElementById('incomeCategories');
+    const expenseCategories = document.getElementById('expenseCategories');
+    categoryList.innerHTML = '';
+    incomeCategories.innerHTML = '';
+    expenseCategories.innerHTML = '';
+
+    categories.forEach(category => {
         const listItem = document.createElement('li');
         listItem.textContent = category.name + ': ' + category.value; // Отображаем имя и пересчитанное значение
         categoryList.appendChild(listItem);
-        // Динамически обновляем категории на диаграммах (если они существуют)
+
         if (category.is_expense) {
-          const expenseItem = document.createElement('div');
-          expenseItem.classList.add('category');
-          expenseItem.style.backgroundColor = category.color;
-          expenseItem.textContent = category.name + ': ' + category.value;
-          expenseCategories.appendChild(expenseItem);
+            const expenseItem = document.createElement('div');
+            expenseItem.classList.add('category');
+            expenseItem.style.backgroundColor = category.color;
+            expenseItem.textContent = category.name + ': ' + category.value;
+            expenseCategories.appendChild(expenseItem);
         } else {
-          const incomeItem = document.createElement('div');
-          incomeItem.classList.add('category');
-          incomeItem.style.backgroundColor = category.color;
-          incomeItem.textContent = category.name + ': ' + category.value;
-          incomeCategories.appendChild(incomeItem);
+            const incomeItem = document.createElement('div');
+            incomeItem.classList.add('category');
+            incomeItem.style.backgroundColor = category.color;
+            incomeItem.textContent = category.name + ': ' + category.value;
+            incomeCategories.appendChild(incomeItem);
         }
-      });
-    }
+    });
+}
 
     function getCsrfToken() {
       const cookies = document.cookie.split(';');

@@ -426,9 +426,29 @@ def update_transaction(request, transaction_id):
 @login_required
 def delete_transaction(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+
     if request.method == 'DELETE':
+        # Обновление баланса категории и счета
+        category = transaction.category
+        account = transaction.account
+        amount = transaction.amount
+
+        if category.is_expense:
+            account.balance += amount  # Возвращаем деньги в баланс счета
+            category.value -= amount  # Уменьшаем значение категории расхода
+        else:
+            account.balance -= amount  # Снимаем деньги с баланса счета
+            category.value -= amount  # Уменьшаем значение категории дохода
+
+        # Сохраняем обновленные данные
+        account.save()
+        category.save()
+
+        # Удаление транзакции
         transaction.delete()
+
         return JsonResponse({'success': True})
+
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
