@@ -33,7 +33,8 @@
     <button class="btn btn-primary" data-bs-target="#transactionModal" data-bs-toggle="modal"
             onclick="openTransactionModal()">Добавить транзакцию
     </button>
-<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#transferModal" type="button">Перевести</button>
+    <button class="btn btn-primary" data-bs-target="#transferModal" data-bs-toggle="modal" type="button">Перевести
+    </button>
     <button class="btn btn-secondary" data-bs-target="#filterTypeModal" data-bs-toggle="modal">Фильтр по времени
     </button>
   </div>
@@ -113,7 +114,9 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
-          <button class="btn btn-primary" id="applyFilterButton" onclick="applyFilter()">Применить</button>
+          <button class="btn btn-primary" id="applyFilterButton" onclick="applyFilter(); applyTransferFilter();">
+            Применить
+          </button>
         </div>
       </div>
     </div>
@@ -152,104 +155,179 @@
     </tbody>
   </table>
   <!-- Модальное окно -->
-<div aria-hidden="true" aria-labelledby="transactionModalLabel" class="modal fade" id="transactionModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="transactionModalLabel">Добавить/Редактировать транзакцию</h5>
-        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
-      </div>
-      <div class="modal-body">
-        <div id="transactionFormContent"></div>
+  <div aria-hidden="true" aria-labelledby="transactionModalLabel" class="modal fade" id="transactionModal"
+       tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="transactionModalLabel">Добавить/Редактировать транзакцию</h5>
+          <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+        </div>
+        <div class="modal-body">
+          <div id="transactionFormContent"></div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<h2>Переводы между счетами</h2>
-<table class="table table-striped">
+  <h2>Переводы между счетами</h2>
+  <table class="table table-striped">
     <thead>
     <tr>
-        <th>ID</th>
-        <th>Исходный счёт</th>
-        <th>Целевой счёт</th>
-        <th>Сумма</th>
-        <th>Дата</th>
-        <th>Описание</th>
-        <th>Действия</th>
+      <th>ID</th>
+      <th>Исходный счёт</th>
+      <th>Целевой счёт</th>
+      <th>Сумма</th>
+      <th>Дата</th>
+      <th>Описание</th>
+      <th>Действия</th>
     </tr>
     </thead>
     <tbody id="transferTableBody">
     </tbody>
-</table>
+  </table>
 </div>
 
-
 <script>
-function loadTransfers() {
-    fetch('/initial/transfer/list/')
-        .then(response => response.json())
+  // Функция для фильтрации переводов
+function applyTransferFilter() {
+    let filterParams = {};
+
+    // Собираем данные для фильтра
+    if (currentFilterType === 'range') {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+
+        if (!startDate || !endDate) {
+            alert("Пожалуйста, укажите оба значения для диапазона.");
+            return;
+        }
+
+        filterParams = { start_date: startDate, end_date: endDate };
+    } else if (currentFilterType === 'year') {
+        const year = document.getElementById('filter_year').textContent;
+        filterParams = { year };
+    } else if (currentFilterType === 'month') {
+        const [monthName, year] = document.getElementById('filter_month').textContent.split(' ');
+        const monthNames = [
+            "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+        ];
+        const monthIndex = monthNames.indexOf(monthName) + 1;
+
+        filterParams = { year, month: monthIndex };
+    }
+
+    console.log("Параметры фильтра:", filterParams);
+
+    // Выполняем запрос на сервер для фильтрации переводов
+    fetch(`/initial/transfer/filter/?${new URLSearchParams(filterParams)}`)
+        .then(response => {
+            if (!response.ok) throw new Error(`Ошибка сети: ${response.statusText}`);
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                const tableBody = document.getElementById('transferTableBody');
-                tableBody.innerHTML = '';
-                data.transfers.forEach(transfer => {
-                    const row = `
-                        <tr>
-                            <td>${transfer.id}</td>
-                            <td>${transfer.source_account.name} (${transfer.source_account.currency})</td>
-                            <td>${transfer.target_account.name} (${transfer.target_account.currency})</td>
-                            <td>${transfer.amount}</td>
-                            <td>${transfer.transaction_date}</td>
-                            <td>${transfer.description || '—'}</td>
-                            <td>
-                                <button class="btn btn-danger btn-sm" onclick="deleteTransfer(${transfer.id})">Удалить</button>
-                            </td>
-                        </tr>
-                    `;
-                    tableBody.insertAdjacentHTML('beforeend', row);
-                });
+                updateTransferList(data.transfers);
             } else {
-                console.error('Ошибка загрузки переводов:', data.error);
+                alert(`Ошибка фильтрации: ${data.error || 'Неизвестная ошибка'}`);
             }
         })
-        .catch(err => console.error('Ошибка запроса:', err));
+        .catch(err => {
+            console.error("Ошибка выполнения фильтрации:", err);
+            alert("Произошла ошибка при выполнении фильтрации.");
+        });
 }
 
-function deleteTransfer(transferId) {
-    if (!confirm('Вы уверены, что хотите удалить перевод?')) return;
+// Функция для обновления списка переводов
+function updateTransferList(transfers) {
+    const transferTableBody = document.getElementById('transferTableBody');
+    transferTableBody.innerHTML = '';
 
-    fetch(`/initial/transfer/delete/${transferId}/`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRFToken': getCsrfToken(), // Убедитесь, что CSRF-токен передается, если используется
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadTransfers(); // Обновляем список переводов
-        } else {
-            alert(`Ошибка удаления: ${data.error}`);
-        }
-    })
-    .catch(err => console.error('Ошибка запроса:', err));
+    transfers.forEach(transfer => {
+        const row = `
+            <tr>
+                <td>${transfer.id}</td>
+                <td>${transfer.source_account.name} (${transfer.source_account.currency})</td>
+                <td>${transfer.target_account.name} (${transfer.target_account.currency})</td>
+                <td>${transfer.amount}</td>
+                <td>${transfer.transaction_date}</td>
+                <td>${transfer.description || '—'}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTransfer(${transfer.id})">Удалить</button>
+                </td>
+            </tr>
+        `;
+        transferTableBody.insertAdjacentHTML('beforeend', row);
+    });
 }
 
+</script>
+<script>
+  function loadTransfers() {
+      fetch('/initial/transfer/list/')
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  const tableBody = document.getElementById('transferTableBody');
+                  tableBody.innerHTML = '';
+                  data.transfers.forEach(transfer => {
+                      const row = `
+                          <tr>
+                              <td>${transfer.id}</td>
+                              <td>${transfer.source_account.name} (${transfer.source_account.currency})</td>
+                              <td>${transfer.target_account.name} (${transfer.target_account.currency})</td>
+                              <td>${transfer.amount}</td>
+                              <td>${transfer.transaction_date}</td>
+                              <td>${transfer.description || '—'}</td>
+                              <td>
+                                  <button class="btn btn-danger btn-sm" onclick="deleteTransfer(${transfer.id})">Удалить</button>
+                              </td>
+                          </tr>
+                      `;
+                      tableBody.insertAdjacentHTML('beforeend', row);
+                  });
+              } else {
+                  console.error('Ошибка загрузки переводов:', data.error);
+              }
+          })
+          .catch(err => console.error('Ошибка запроса:', err));
+  }
 
-// Функция для получения CSRF-токена
-function getCsrfToken() {
-    const name = 'csrftoken';
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [key, value] = cookie.trim().split('=');
-        if (key === name) return decodeURIComponent(value);
-    }
-    return '';
-}
+  function deleteTransfer(transferId) {
+      if (!confirm('Вы уверены, что хотите удалить перевод?')) return;
 
-// Загружаем переводы при загрузке страницы
-document.addEventListener('DOMContentLoaded', loadTransfers);
+      fetch(`/initial/transfer/delete/${transferId}/`, {
+          method: 'DELETE',
+          headers: {
+              'X-CSRFToken': getCsrfToken(), // Убедитесь, что CSRF-токен передается, если используется
+          },
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              loadTransfers(); // Обновляем список переводов
+          } else {
+              alert(`Ошибка удаления: ${data.error}`);
+          }
+      })
+      .catch(err => console.error('Ошибка запроса:', err));
+  }
+
+
+  // Функция для получения CSRF-токена
+  function getCsrfToken() {
+      const name = 'csrftoken';
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+          const [key, value] = cookie.trim().split('=');
+          if (key === name) return decodeURIComponent(value);
+      }
+      return '';
+  }
+
+  // Загружаем переводы при загрузке страницы
+  document.addEventListener('DOMContentLoaded', loadTransfers);
 </script>
 
 <!-- Bootstrap JS -->
@@ -339,8 +417,6 @@ function updateTransactions() {
         })
         .catch(err => console.error('Ошибка запроса обновления транзакций:', err));
 }
-
-
 
 
 </script>

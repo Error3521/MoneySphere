@@ -3,117 +3,139 @@
 {% block content %}
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Счета</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Счета</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 
 <div class="container mt-5">
-    <h1>Список счетов</h1>
-    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#accountModal" onclick="openAccountModal()">Добавить счёт</button>
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>Название</th>
-            <th>Баланс</th>
-            <th>Валюта</th>
-            <th>Действия</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for account in accounts %}
-        <tr>
-            <td>{{ account.id }}</td>
-            <td>{{ account.name }}</td>
-            <td>{{ account.balance }}</td>
-            <td>{{ account.currency_code }}</td>
-            <td>
-                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#accountModal" onclick="openAccountModal({{ account.id }})">Редактировать</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteAccount({{ account.id }})">Удалить</button>
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+  {% csrf_token %}
+  <h1>Список счетов</h1>
+  <button class="btn btn-primary mb-3" data-bs-target="#accountModal" data-bs-toggle="modal"
+          onclick="openAccountModal()">Добавить счёт
+  </button>
+  <table class="table table-striped">
+    <thead>
+    <tr>
+      <th>ID</th>
+      <th>Название</th>
+      <th>Баланс</th>
+      <th>Валюта</th>
+      <th>Действия</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for account in accounts %}
+    <tr>
+      <td>{{ account.id }}</td>
+      <td>{{ account.name }}</td>
+      <td>{{ account.balance }}</td>
+      <td>{{ account.currency.code }}</td>  <!-- Исправление здесь -->
+      <td>
+        <button class="btn btn-warning btn-sm" data-bs-target="#accountModal" data-bs-toggle="modal"
+                onclick="openAccountModal({{ account.id }})">Редактировать
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="deleteAccount({{ account.id }})">Удалить</button>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
 </div>
 
 <!-- Модальное окно -->
-<div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="accountModalLabel">Добавить/Редактировать счёт</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="accountFormContent"></div>
-            </div>
-        </div>
+<div aria-hidden="true" aria-labelledby="accountModalLabel" class="modal fade" id="accountModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="accountModalLabel">Добавить/Редактировать счёт</h5>
+        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+      </div>
+      <div class="modal-body">
+        <div id="accountFormContent"></div>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    function openAccountModal(accountId = null) {
-        const url = accountId ? `/initial/accounts/${accountId}/update/` : `/initial/accounts/create/`;
+  function openAccountModal(accountId = null) {
+      const url = accountId ? `/initial/accounts/${accountId}/update/` : `/initial/accounts/create/`;
 
-        fetch(url)
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('accountFormContent').innerHTML = data;
-                document.getElementById('accountForm').onsubmit = function (event) {
-                    event.preventDefault();
-                    saveAccount(accountId);
-                };
-            });
-    }
+      fetch(url)
+          .then(response => response.text())
+          .then(data => {
+              document.getElementById('accountFormContent').innerHTML = data;
+              document.getElementById('accountForm').onsubmit = function (event) {
+                  event.preventDefault();
+                  saveAccount(accountId);
+              };
+          });
+  }
 
-    function saveAccount(accountId) {
-        const form = document.getElementById('accountForm');
-        const url = accountId ? `/initial/accounts/${accountId}/update/` : `/initial/accounts/create/`;
+  function saveAccount(accountId) {
+      const form = document.getElementById('accountForm');
+      const url = accountId ? `/initial/accounts/${accountId}/update/` : `/initial/accounts/create/`;
 
-        const formData = new FormData(form);
+      const formData = new FormData(form);
 
-        fetch(url, {
+      fetch(url, {
+          method: 'POST',
+          body: formData,
+          headers: {
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          },
+      })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  location.reload();
+              } else {
+                  alert('Ошибка: ' + JSON.stringify(data.errors));
+              }
+          });
+  }
+
+function deleteAccount(accountId) {
+    if (confirm('Вы уверены, что хотите удалить счёт?')) {
+        // CSRF-токен
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // Создаем объект FormData
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        formData.append('_method', 'DELETE');
+
+        // Отправляем AJAX-запрос
+        fetch(`/initial/accounts/${accountId}/delete/`, {
             method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            },
+            body: formData
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Ошибка: ' + JSON.stringify(data.errors));
-                }
-            });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();  // Перезагрузка страницы после успешного удаления
+            } else {
+                alert('Ошибка: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при удалении:', error);
+        });
     }
+}
 
-    function deleteAccount(accountId) {
-        if (confirm('Вы уверены, что хотите удалить счёт?')) {
-            fetch(`/initial/accounts/${accountId}/delete/`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                },
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Ошибка: ' + data.error);
-                    }
-                });
-        }
-    }
+
+
+
+
+
 </script>
 </body>
 </html>

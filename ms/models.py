@@ -1,3 +1,5 @@
+from datetime import timezone
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
@@ -79,10 +81,10 @@ class Account(models.Model):
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     currency = models.ForeignKey(
         Currency,
-        on_delete=models.PROTECT,  # Защита от удаления валют, которые используются
-        null=True,                 # Разрешить пустые значения при создании (если нужно)
-        blank=True,                # Разрешить пустое значение в формах
-        default=1               # Можно указать ID валюты RUB, если она обязательна
+        on_delete=models.SET_NULL,  # При удалении счета валюта останется в базе, но сбрасывается на NULL
+        null=True,                  # Разрешаем пустое значение для валюты
+        blank=True,                 # Разрешаем пустое значение в формах
+        default=1                   # Можно указать ID валюты RUB, если она обязательна
     )
 
     class Meta:
@@ -90,7 +92,6 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.currency.code if self.currency else 'Без валюты'})"
-
 
 
 
@@ -124,10 +125,11 @@ class Transaction(models.Model):
 
 
 class Transfer(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default="1")
     source_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='outgoing_transfers')
     target_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='incoming_transfers')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    transaction_date = models.DateField(auto_now_add=True)
+    transaction_date = models.DateField()
     description = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):

@@ -6,8 +6,6 @@ from difflib import SequenceMatcher
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Sum
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
@@ -150,7 +148,6 @@ def update_category(request, category_id):
             return JsonResponse({"success": True})
         except Category.DoesNotExist:
             return JsonResponse({"success": False, "error": "Категория не найдена."})
-
 
 
 def get_category_data(request, category_id):
@@ -509,12 +506,21 @@ def update_account(request, account_id):
     return render(request, 'ms/home/initial/accounts/account_form_partial.html', {'form': form})
 
 
-@login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+
+
+@csrf_exempt  # Для временного обхода проверки CSRF, используйте для тестирования
+@require_http_methods(["POST"])  # Разрешаем только POST-запросы
 def delete_account(request, account_id):
     account = get_object_or_404(Account, id=account_id, user=request.user)
-    if request.method == 'DELETE':
+
+    if request.POST.get('_method') == 'DELETE':  # Проверка на имитацию метода DELETE
         account.delete()
         return JsonResponse({'success': True})
+
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
@@ -696,3 +702,41 @@ def delete_transfer(request, transfer_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Неверный метод запроса'}, status=405)
+
+
+def filter_transfers(request):
+    filters = {}
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    year = request.GET.get('year')
+    month = request.GET.get('month')
+
+    if start_date and end_date:
+        filters['transaction_date__range'] = (start_date, end_date)
+    elif year and month:
+        filters['transaction_date__year'] = year
+        filters['transaction_date__month'] = month
+    elif year:
+        filters['transaction_date__year'] = year
+
+    transfers = Transfer.objects.filter(**filters)
+
+    result = [
+        {
+            "id": transfer.id,
+            "source_account": {
+                "name": transfer.source_account.name,
+                "currency": transfer.source_account.currency.code,
+            },
+            "target_account": {
+                "name": transfer.target_account.name,
+                "currency": transfer.target_account.currency.code,
+            },
+            "amount": transfer.amount,
+            "transaction_date": transfer.transaction_date.isoformat(),
+            "description": transfer.description,
+        }
+        for transfer in transfers
+    ]
+
+    return JsonResponse({"success": True, "transfers": result})

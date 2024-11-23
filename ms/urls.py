@@ -21,10 +21,12 @@ urlpatterns = [
     path('initial/transaction/<int:transaction_id>/update/', views.update_transaction, name='update_transaction'),
     path('initial/transaction/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
     path('initial/transaction/filter/', views.filter_transactions, name='filter_transactions'),
-    path('api/currency/convert/', views.convert_currency, name='convert_currency'),
     path('initial/transaction/transfer/', views.transfer_between_accounts, name='transfer_between_accounts'),
+    path('api/currency/convert/', views.convert_currency, name='convert_currency'),
+
     path('initial/transfer/list/', views.transfer_list, name='transfer_list'),
     path('initial/transfer/delete/<int:transfer_id>/', views.delete_transfer, name='delete_transfer'),
+    path('initial/transfer/filter/', views.filter_transfers, name='filter_transfers'),
 
     path('initial/accounts/', views.accounts_view, name='accounts'),
     path('initial/accounts/create/', views.create_account, name='create_account'),
