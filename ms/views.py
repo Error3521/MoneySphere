@@ -526,7 +526,6 @@ def update_account(request, account_id):
     return render(request, 'ms/home/initial/accounts/account_form_partial.html', {'form': form})
 
 
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -760,3 +759,58 @@ def filter_transfers(request):
     ]
 
     return JsonResponse({"success": True, "transfers": result})
+
+
+@login_required
+def get_currencies(request):
+    currencies = Currency.objects.all().values('code', 'name')
+    return JsonResponse({'currencies': list(currencies)})
+
+
+@login_required
+def update_currency(request):
+    if request.method == 'POST':
+        import json
+        data = json.loads(request.body)
+        currency_code = data.get('currency')
+
+        try:
+            currency = Currency.objects.get(code=currency_code)
+            request.user.profile.default_currency = currency  # Пример хранения валюты в профиле пользователя
+            request.user.profile.save()
+
+            return JsonResponse({'success': True})
+        except Currency.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Валюта не найдена'})
+
+    return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .models import User, Profile
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    instance.profile.save()
+
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+def current_currency(request):
+    profile = request.user.profile  # Получаем профиль пользователя
+    currency = profile.default_currency.code if profile.default_currency else None
+    return JsonResponse({'currency': currency})
+def your_view(request):
+    current_currency = request.user.profile.default_currency
+    return render(request, 'your_template.html', {'current_currency': current_currency})

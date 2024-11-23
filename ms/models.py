@@ -134,3 +134,6 @@ class Transfer(models.Model):
 
     def __str__(self):
         return f"Transfer {self.id}: {self.amount} from {self.source_account.name} to {self.target_account.name}"
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    default_currency = models.ForeignKey(Currency, on_delete=models.SET_NULL, null=True, blank=True)

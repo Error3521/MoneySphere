@@ -33,4 +33,7 @@ urlpatterns = [
     path('initial/accounts/<int:account_id>/update/', views.update_account, name='update_account'),
     path('initial/accounts/<int:account_id>/delete/', views.delete_account, name='delete_account'),
 
+    path('api/currencies/', views.get_currencies, name='get_currencies'),
+    path('api/current_currency/', views.current_currency, name='current_currency'),
+    path('initial/update_currency/', views.update_currency, name='update_currency'),
 ]

@@ -141,7 +141,152 @@
     {% block content %}
     {% endblock %}
 </section>
+<!-- Модальное окно для настроек -->
+<div id="settingsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Настройки</h2>
+        <form id="settingsForm">
+            <label for="currencySelect">Выберите валюту:</label>
+            <select id="currencySelect" name="currency">
+                <!-- Валюты будут загружены динамически -->
+            </select>
+            <button type="submit">Сохранить</button>
+        </form>
+    </div>
+</div>
+
+<!-- Стили модального окна -->
+<style>
+    .modal {
+        display: none; /* Скрыто по умолчанию */
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5); /* Полупрозрачный фон */
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 50%;
+        border-radius: 10px;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+</style>
+
 <script>
+
+document.addEventListener('DOMContentLoaded', () => {
+    const settingsButton = document.querySelector('.bx-cog'); // Кнопка "Настройки"
+    const settingsModal = document.getElementById('settingsModal'); // Модальное окно
+    const closeModal = settingsModal.querySelector('.close'); // Кнопка закрытия
+
+    // Открыть модальное окно
+    settingsButton.addEventListener('click', () => {
+        loadCurrencies(); // Загружаем валюты при открытии модального окна
+        settingsModal.style.display = 'block';
+    });
+
+    // Закрыть модальное окно
+    closeModal.addEventListener('click', () => {
+        settingsModal.style.display = 'none';
+    });
+
+    // Закрытие модального окна при клике вне области
+    window.addEventListener('click', (event) => {
+        if (event.target === settingsModal) {
+            settingsModal.style.display = 'none';
+        }
+    });
+
+    // Обработка формы настроек
+    const settingsForm = document.getElementById('settingsForm');
+    settingsForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const selectedCurrency = document.getElementById('currencySelect').value;
+
+        fetch('/initial/update_currency/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({ currency: selectedCurrency }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Валюта обновлена!');
+                    settingsModal.style.display = 'none'; // Закрыть окно
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Ошибка:', error));
+    });
+});
+
+// Функция для загрузки валют в select
+function loadCurrencies() {
+    fetch('/api/currencies/')
+        .then(response => response.json())
+        .then(data => {
+            const currencySelect = document.getElementById('currencySelect');
+            currencySelect.innerHTML = ''; // Очистка списка
+
+            // Получаем текущую выбранную валюту
+            fetch('/api/current_currency/')
+                .then(response => response.json())
+                .then(currentData => {
+                    const currentCurrency = currentData.currency || null;
+
+                    data.currencies.forEach((currency, index) => {
+                        const option = document.createElement('option');
+                        option.value = currency.code;
+                        option.textContent = `${currency.name} (${currency.code})`;
+
+                        // Устанавливаем выбранную валюту
+                        if (currentCurrency) {
+                            option.selected = currency.code === currentCurrency;
+                        } else if (index === 0) {
+                            // Если нет сохраненной валюты, выбираем первую
+                            option.selected = true;
+                        }
+
+                        currencySelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Ошибка загрузки текущей валюты:', error));
+        })
+        .catch(error => console.error('Ошибка загрузки валют:', error));
+}
+
+
+// Функция для получения CSRF-токена
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
 document.getElementById("logoutButton").onclick = function() {
     // Создаем скрытую форму для выхода
     const form = document.createElement('form');
