@@ -6,5 +6,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),  # Включает страницы входа, выхода и сброса пароля
     path('', include('ms.urls')),
+
 ]
 

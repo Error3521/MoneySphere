@@ -136,7 +136,7 @@ class Transaction(models.Model):
 
 
 class Transfer(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, default="1")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Только одно поле user
     source_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='outgoing_transfers')
     target_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='incoming_transfers')
     amount = models.DecimalField(max_digits=10, decimal_places=2)

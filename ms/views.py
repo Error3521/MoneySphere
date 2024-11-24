@@ -56,6 +56,9 @@ def is_name_similar(new_name, existing_names, threshold=0.8):
 def categories_combined_view(request):
     user = request.user
     target_currency = user.profile.default_currency  # Валюта профиля
+    if target_currency is None:
+        from ms.models import Currency  # Импортируйте модель валют, если нужно
+        target_currency = Currency.objects.get_or_create(code="RUB")[0]
     categories = Category.objects.filter(user=user)
     transactions = Transaction.objects.filter(user=user)
 
@@ -635,8 +638,9 @@ def transfer_between_accounts(request):
                 source_account.save()
                 target_account.save()
 
-                # Добавляем запись в Transfer
+                # Добавляем запись в Transfer с указанием текущего пользователя
                 Transfer.objects.create(
+                    user=request.user,  # Указываем текущего пользователя
                     source_account=source_account,
                     target_account=target_account,
                     amount=converted_amount,
@@ -646,8 +650,6 @@ def transfer_between_accounts(request):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Неверный метод запроса'}, status=405)
 
 
 @csrf_exempt
@@ -687,24 +689,10 @@ def transfer_transaction(request):
             return JsonResponse({"success": False, "error": str(e)})
 
 
-def transaction_list(request):
-    transactions = Transaction.objects.all().select_related('account', 'category')
-    result = [
-        {
-            "id": tx.id,
-            "category": tx.category.name if tx.category else "Без категории",
-            "account": {"name": tx.account.name, "currency": tx.account.currency.code},
-            "amount": tx.amount,
-            "transaction_date": tx.transaction_date.isoformat(),
-            "description": tx.description,
-        }
-        for tx in transactions
-    ]
-    return JsonResponse({"success": True, "transactions": result})
-
-
 def transfer_list(request):
-    transfers = Transfer.objects.all().select_related('source_account', 'target_account')
+    # Получаем переводы только для текущего пользователя
+    transfers = Transfer.objects.filter(user=request.user).select_related('source_account', 'target_account')
+
     result = [
         {
             "id": transfer.id,
@@ -722,6 +710,32 @@ def transfer_list(request):
         }
         for transfer in transfers
     ]
+
+    return JsonResponse({"success": True, "transfers": result})
+
+
+def transfer_list(request):
+    # Получаем переводы только для текущего пользователя
+    transfers = Transfer.objects.filter(user=request.user).select_related('source_account', 'target_account')
+
+    result = [
+        {
+            "id": transfer.id,
+            "source_account": {
+                "name": transfer.source_account.name,
+                "currency": transfer.source_account.currency.code,
+            },
+            "target_account": {
+                "name": transfer.target_account.name,
+                "currency": transfer.target_account.currency.code,
+            },
+            "amount": transfer.amount,
+            "transaction_date": transfer.transaction_date.isoformat(),
+            "description": transfer.description,
+        }
+        for transfer in transfers
+    ]
+
     return JsonResponse({"success": True, "transfers": result})
 
 

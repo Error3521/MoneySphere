@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-*yyh!fz56g4is#xreip)ps=90f=$add6yk+i*xahb$s$$ojpoe
 
 DEBUG = True
 
-LOGIN_REDIRECT_URL = "/initial/"
+LOGIN_REDIRECT_URL = '/initial/categories/'
 LOGOUT_REDIRECT_URL = "/"
 AUTH_USER_MODEL = "ms.User"
 
