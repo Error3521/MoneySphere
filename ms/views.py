@@ -71,6 +71,7 @@ def categories_combined_view(request):
             end_percentage = start_percentage + percentage
             chart_data.append({
                 'name': category.name,
+                'value': category.value,
                 'percentage': percentage,
                 'color': category.color,
                 'start_percentage': start_percentage,
@@ -82,6 +83,9 @@ def categories_combined_view(request):
     income_data = prepare_chart_data(income_categories, total_income)
     expense_data = prepare_chart_data(expense_categories, total_expenses)
 
+    # Получение кода валюты из профиля
+    currency_code = user.profile.default_currency.code if user.profile.default_currency else ""
+
     # Передача данных в шаблон
     return render(request, 'ms/home/initial/categories/categories.html', {
         'income_categories': income_data,
@@ -90,7 +94,9 @@ def categories_combined_view(request):
         'total_income': total_income,
         'income_categorie': income_categories,  # Передаем оригинальные категории доходов
         'expense_categorie': expense_categories,  # Передаем оригинальные категории расходов
+        'currency_code': currency_code,  # Передаем код валюты
     })
+
 
 
 @login_required
@@ -531,8 +537,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 
-@csrf_exempt  # Для временного обхода проверки CSRF, используйте для тестирования
-@require_http_methods(["POST"])  # Разрешаем только POST-запросы
+@require_http_methods(["POST"])
 def delete_account(request, account_id):
     account = get_object_or_404(Account, id=account_id, user=request.user)
 

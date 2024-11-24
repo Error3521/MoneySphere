@@ -1,163 +1,18 @@
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
-    <meta charset="UTF-8">
-    {% load static %}
-    <link href="{% static 'ms/initial/style.css' %}" rel="stylesheet">
-    <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>{% block title %}My App{% endblock %}</title>
-    <meta name="csrf-token" content="{{ csrf_token }}">
-</head>
-<body>
-<div class="sidebar close">
-    <div class="logo-details">
-        <i class='bx bxl-c-plus-plus'></i>
-        <span class="logo_name">MoneySphere</span>
-    </div>
-    <ul class="nav-links">
-        <li>
-            <a href="/initial/categories/">
-                <i class='bx bx-grid-alt'></i>
-                <span class="link_name">Categories</span>
-            </a>
-            <ul class="sub-menu blank">
-                <li><a class="link_name" href="#">Categories</a></li>
-            </ul>
-        </li>
-        <li>
-            <a href="/initial/transaction">
-                <i class='bx bx-pie-chart-alt-2'></i>
-                <span class="link_name">Transaction</span>
-            </a>
-            <ul class="sub-menu blank">
-                <li><a class="link_name" href="#">Transaction</a></li>
-            </ul>
-        </li>
-        <li>
-            <a href="/initial/accounts">
-                <i class='bx bx-compass'></i>
-                <span class="link_name">Accounts</span>
-            </a>
-            <ul class="sub-menu blank">
-                <li><a class="link_name" href="#">Accounts</a></li>
-            </ul>
-        </li>
+  <meta charset="UTF-8">
+  {% load static %}
+  <link href="{% static 'ms/initial/style.css' %}" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-
-<!--
-        <li>
-            <div class="iocn-link">
-                <a href="#">
-                    <i class='bx bx-collection'></i>
-                    <span class="link_name">Category</span>
-                </a>
-                <i class='bx bxs-chevron-down arrow'></i>
-            </div>
-            <ul class="sub-menu">
-                <li><a class="link_name" href="#">Category</a></li>
-                <li><a href="#">HTML & CSS</a></li>
-                <li><a href="#">JavaScript</a></li>
-                <li><a href="#">PHP & MySQL</a></li>
-            </ul>
-        </li>
-        <li>
-            <div class="iocn-link">
-                <a href="#">
-                    <i class='bx bx-book-alt'></i>
-                    <span class="link_name">Posts</span>
-                </a>
-                <i class='bx bxs-chevron-down arrow'></i>
-            </div>
-            <ul class="sub-menu">
-                <li><a class="link_name" href="#">Posts</a></li>
-                <li><a href="#">Web Design</a></li>
-                <li><a href="#">Login Form</a></li>
-                <li><a href="#">Card Design</a></li>
-            </ul>
-        </li>
-        <li>
-            <a href="#">
-                <i class='bx bx-line-chart'></i>
-                <span class="link_name">Chart</span>
-            </a>
-            <ul class="sub-menu blank">
-                <li><a class="link_name" href="#">Chart</a></li>
-            </ul>
-        </li>
-        <li>
-            <div class="iocn-link">
-                <a href="#">
-                    <i class='bx bx-plug'></i>
-                    <span class="link_name">Plugins</span>
-                </a>
-                <i class='bx bxs-chevron-down arrow'></i>
-            </div>
-            <ul class="sub-menu">
-                <li><a class="link_name" href="#">Plugins</a></li>
-                <li><a href="#">UI Face</a></li>
-                <li><a href="#">Pigments</a></li>
-                <li><a href="#">Box Icons</a></li>
-            </ul>
-        </li>
-
-        <li>
-            <a href="#">
-                <i class='bx bx-history'></i>
-                <span class="link_name">History</span>
-            </a>
-            <ul class="sub-menu blank">
-                <li><a class="link_name" href="#">History</a></li>
-            </ul>
-        </li>
--->
-        <li>
-            <a href="#">
-                <i class='bx bx-cog'></i>
-                <span class="link_name">Setting</span>
-            </a>
-            <ul class="sub-menu blank">
-                <li><a class="link_name" href="#">Setting</a></li>
-            </ul>
-        </li>
-<li>
-    <div class="profile-details">
-        <div class="profile-content"></div>
-        <div class="name-job">
-            <div class="profile_name">Prem Shahi</div>
-            <div class="job">Web Designer</div>
-        </div>
-        <i class='bx bx-log-out' id="logoutButton"></i>
-    </div>
-</li>
-
-    </ul>
-</div>
-<section class="home-section">
-    <div class="home-content">
-        <i class='bx bx-menu'></i>
-        <span class="text"></span>
-    </div>
-    {% block content %}
-    {% endblock %}
-</section>
-<!-- Модальное окно для настроек -->
-<div id="settingsModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Настройки</h2>
-        <form id="settingsForm">
-            <label for="currencySelect">Выберите валюту:</label>
-            <select id="currencySelect" name="currency">
-                <!-- Валюты будут загружены динамически -->
-            </select>
-            <button type="submit">Сохранить</button>
-        </form>
-    </div>
-</div>
-
-<!-- Стили модального окна -->
-<style>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>{% block title %}My App{% endblock %}</title>
+  <meta content="{{ csrf_token }}" name="csrf-token">
+  <!-- Стили модального окна -->
+  <style>
     .modal {
         display: none; /* Скрыто по умолчанию */
         position: fixed;
@@ -166,17 +21,21 @@
         top: 0;
         width: 100%;
         height: 100%;
-        overflow: auto;
         background-color: rgba(0, 0, 0, 0.5); /* Полупрозрачный фон */
+        display: flex; /* Центрирование с помощью Flexbox */
+        justify-content: center; /* Горизонтальное выравнивание */
+        align-items: center; /* Вертикальное выравнивание */
     }
 
     .modal-content {
         background-color: #fefefe;
-        margin: 15% auto;
         padding: 20px;
         border: 1px solid #888;
-        width: 50%;
+        width: 50%; /* Ширина модального окна */
+        max-width: 600px;
         border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Тень для модального окна */
+        animation: fadeIn 0.3s ease; /* Анимация появления */
     }
 
     .close {
@@ -184,42 +43,210 @@
         float: right;
         font-size: 28px;
         font-weight: bold;
+        cursor: pointer;
     }
 
     .close:hover,
     .close:focus {
         color: black;
         text-decoration: none;
-        cursor: pointer;
     }
-</style>
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+  </style>
+</head>
+<body>
+<div class="sidebar close">
+  <div class="logo-details">
+    <i class='bx bxl-c-plus-plus'></i>
+    <span class="logo_name">MoneySphere</span>
+  </div>
+  <ul class="nav-links">
+    <li>
+      <a href="/initial/categories/">
+        <i class='bx bx-grid-alt'></i>
+        <span class="link_name">Categories</span>
+      </a>
+      <ul class="sub-menu blank">
+        <li><a class="link_name" href="#">Categories</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="/initial/transaction">
+        <i class='bx bx-pie-chart-alt-2'></i>
+        <span class="link_name">Transaction</span>
+      </a>
+      <ul class="sub-menu blank">
+        <li><a class="link_name" href="#">Transaction</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="/initial/accounts">
+        <i class='bx bx-compass'></i>
+        <span class="link_name">Accounts</span>
+      </a>
+      <ul class="sub-menu blank">
+        <li><a class="link_name" href="#">Accounts</a></li>
+      </ul>
+    </li>
+
+
+    <!--
+            <li>
+                <div class="iocn-link">
+                    <a href="#">
+                        <i class='bx bx-collection'></i>
+                        <span class="link_name">Category</span>
+                    </a>
+                    <i class='bx bxs-chevron-down arrow'></i>
+                </div>
+                <ul class="sub-menu">
+                    <li><a class="link_name" href="#">Category</a></li>
+                    <li><a href="#">HTML & CSS</a></li>
+                    <li><a href="#">JavaScript</a></li>
+                    <li><a href="#">PHP & MySQL</a></li>
+                </ul>
+            </li>
+            <li>
+                <div class="iocn-link">
+                    <a href="#">
+                        <i class='bx bx-book-alt'></i>
+                        <span class="link_name">Posts</span>
+                    </a>
+                    <i class='bx bxs-chevron-down arrow'></i>
+                </div>
+                <ul class="sub-menu">
+                    <li><a class="link_name" href="#">Posts</a></li>
+                    <li><a href="#">Web Design</a></li>
+                    <li><a href="#">Login Form</a></li>
+                    <li><a href="#">Card Design</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#">
+                    <i class='bx bx-line-chart'></i>
+                    <span class="link_name">Chart</span>
+                </a>
+                <ul class="sub-menu blank">
+                    <li><a class="link_name" href="#">Chart</a></li>
+                </ul>
+            </li>
+            <li>
+                <div class="iocn-link">
+                    <a href="#">
+                        <i class='bx bx-plug'></i>
+                        <span class="link_name">Plugins</span>
+                    </a>
+                    <i class='bx bxs-chevron-down arrow'></i>
+                </div>
+                <ul class="sub-menu">
+                    <li><a class="link_name" href="#">Plugins</a></li>
+                    <li><a href="#">UI Face</a></li>
+                    <li><a href="#">Pigments</a></li>
+                    <li><a href="#">Box Icons</a></li>
+                </ul>
+            </li>
+
+            <li>
+                <a href="#">
+                    <i class='bx bx-history'></i>
+                    <span class="link_name">History</span>
+                </a>
+                <ul class="sub-menu blank">
+                    <li><a class="link_name" href="#">History</a></li>
+                </ul>
+            </li>
+    -->
+    <li>
+      <a data-bs-target="#settingsModal" data-bs-toggle="modal" href="#">
+        <i class='bx bx-cog'></i>
+        <span class="link_name">Setting</span>
+      </a>
+      <ul class="sub-menu blank">
+        <li><a class="link_name" href="#">Setting</a></li>
+      </ul>
+    </li>
+    <li>
+      <div class="profile-details">
+        <div class="profile-content"></div>
+        <div class="name-job">
+          <div class="profile_name">Prem Shahi</div>
+          <div class="job">Web Designer</div>
+        </div>
+        <i class='bx bx-log-out' id="logoutButton"></i>
+      </div>
+    </li>
+
+  </ul>
+</div>
+<section class="home-section">
+  <div class="home-content">
+    <i class='bx bx-menu'></i>
+    <span class="text"></span>
+  </div>
+  {% block content %}
+  {% endblock %}
+</section>
+<!-- Модальное окно для настроек -->
+<div aria-hidden="true" aria-labelledby="settingsModalLabel" class="modal fade" id="settingsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="settingsModalLabel">Настройки</h5>
+        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+      </div>
+      <div class="modal-body">
+        <form id="settingsForm">
+          <label for="currencySelect">Выберите валюту:</label>
+          <select class="form-select" id="currencySelect" name="currency">
+            <!-- Валюты будут загружены динамически -->
+          </select>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
+        <button class="btn btn-primary" form="settingsForm" type="submit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <script>
 
 document.addEventListener('DOMContentLoaded', () => {
-    const settingsButton = document.querySelector('.bx-cog'); // Кнопка "Настройки"
-    const settingsModal = document.getElementById('settingsModal'); // Модальное окно
-    const closeModal = settingsModal.querySelector('.close'); // Кнопка закрытия
+ const settingsModal = document.getElementById('settingsModal');
+    let currenciesLoaded = false; // Флаг для проверки загрузки валют
 
-    // Открыть модальное окно
-    settingsButton.addEventListener('click', () => {
-        loadCurrencies(); // Загружаем валюты при открытии модального окна
-        settingsModal.style.display = 'block';
-    });
-
-    // Закрыть модальное окно
-    closeModal.addEventListener('click', () => {
-        settingsModal.style.display = 'none';
-    });
-
-    // Закрытие модального окна при клике вне области
-    window.addEventListener('click', (event) => {
-        if (event.target === settingsModal) {
-            settingsModal.style.display = 'none';
+    // Загружаем валюты только один раз при первом открытии
+    settingsModal.addEventListener('show.bs.modal', () => {
+        if (!currenciesLoaded) {
+            loadCurrencies();
+            currenciesLoaded = true;
         }
     });
 
-    // Обработка формы настроек
+    // Сбрасываем флаг при скрытии, если нужно обновление при каждом открытии
+    settingsModal.addEventListener('hidden.bs.modal', () => {
+        currenciesLoaded = false;
+        clearSelectOptions(document.getElementById('currencySelect'));
+    });
+
+    // Удаление фона, если он остается после закрытия
+    settingsModal.addEventListener('hidden.bs.modal', () => {
+        const modalBackdrop = document.querySelector('.modal-backdrop');
+        if (modalBackdrop) {
+            modalBackdrop.remove();
+        }
+    });
+
     const settingsForm = document.getElementById('settingsForm');
     settingsForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -237,7 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     alert('Валюта обновлена!');
-                    settingsModal.style.display = 'none'; // Закрыть окно
+                    const modalInstance = bootstrap.Modal.getInstance(settingsModal);
+                    if (modalInstance) modalInstance.hide();
                 } else {
                     alert('Ошибка: ' + data.error);
                 }
@@ -246,30 +274,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Функция для загрузки валют в select
+function clearSelectOptions(selectElement) {
+    while (selectElement.firstChild) {
+        selectElement.removeChild(selectElement.firstChild);
+    }
+}
+
 function loadCurrencies() {
+    const currencySelect = document.getElementById('currencySelect');
+    clearSelectOptions(currencySelect); // Очистка списка перед добавлением новых данных
+
     fetch('/api/currencies/')
         .then(response => response.json())
         .then(data => {
-            const currencySelect = document.getElementById('currencySelect');
-            currencySelect.innerHTML = ''; // Очистка списка
-
-            // Получаем текущую выбранную валюту
             fetch('/api/current_currency/')
                 .then(response => response.json())
                 .then(currentData => {
                     const currentCurrency = currentData.currency || null;
 
-                    data.currencies.forEach((currency, index) => {
+                    // Добавление новых опций в select
+                    data.currencies.forEach((currency) => {
                         const option = document.createElement('option');
                         option.value = currency.code;
                         option.textContent = `${currency.name} (${currency.code})`;
 
-                        // Устанавливаем выбранную валюту
-                        if (currentCurrency) {
-                            option.selected = currency.code === currentCurrency;
-                        } else if (index === 0) {
-                            // Если нет сохраненной валюты, выбираем первую
+                        // Установка выбранной валюты
+                        if (currentCurrency && currency.code === currentCurrency) {
                             option.selected = true;
                         }
 
@@ -282,49 +312,52 @@ function loadCurrencies() {
 }
 
 
-// Функция для получения CSRF-токена
 function getCSRFToken() {
     return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 }
 
-document.getElementById("logoutButton").onclick = function() {
-    // Создаем скрытую форму для выхода
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/logout/';  // Путь выхода
-
-    // Создаем скрытый input для CSRF-токена
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = getCSRFToken();
-    form.appendChild(csrfInput);
-
-    // Отправляем форму
-    document.body.appendChild(form);
-    form.submit();
-};
 
 
-function getCSRFToken() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    return csrfToken;
-}
 
 
-    let arrow = document.querySelectorAll(".arrow");
-    for (var i = 0; i < arrow.length; i++) {
-      arrow[i].addEventListener("click", (e)=>{
-     let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
-     arrowParent.classList.toggle("showMenu");
-      });
+    document.getElementById("logoutButton").onclick = function() {
+        // Создаем скрытую форму для выхода
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/logout/';  // Путь выхода
+
+        // Создаем скрытый input для CSRF-токена
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = getCSRFToken();
+        form.appendChild(csrfInput);
+
+        // Отправляем форму
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+
+    function getCSRFToken() {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        return csrfToken;
     }
-    let sidebar = document.querySelector(".sidebar");
-    let sidebarBtn = document.querySelector(".bx-menu");
-    console.log(sidebarBtn);
-    sidebarBtn.addEventListener("click", ()=>{
-      sidebar.classList.toggle("close");
-    });
+
+
+        let arrow = document.querySelectorAll(".arrow");
+        for (var i = 0; i < arrow.length; i++) {
+          arrow[i].addEventListener("click", (e)=>{
+         let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+         arrowParent.classList.toggle("showMenu");
+          });
+        }
+        let sidebar = document.querySelector(".sidebar");
+        let sidebarBtn = document.querySelector(".bx-menu");
+        console.log(sidebarBtn);
+        sidebarBtn.addEventListener("click", ()=>{
+          sidebar.classList.toggle("close");
+        });
 </script>
 </body>
 </html>

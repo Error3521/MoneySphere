@@ -1,12 +1,12 @@
 <!DOCTYPE html> {% extends 'ms/home/initial/initial.html' %} {% block content %}
 <html lang="ru">
 
-  <head>
-    <meta charset="UTF-8">
-    <title>Категории</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <style>
+<head>
+  <meta charset="UTF-8">
+  <title>Категории</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
     headers: {
       'X-CSRFToken': getCookie('csrftoken') // Функция для получения токена
     }
@@ -212,56 +212,63 @@
       color: #333;
       text-align: center;
     }
-    </style>
-  </head>
+  </style>
+</head>
 
-  <body>
-    <!--Модальные окна фильтров-->
-    <div class="button-container">
-      <!--Модальное окна для выбора фильтра-->
-      <div aria-hidden="true" class="modal fade" id="filterCategoryModal" tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Фильтр категорий</h5>
-              <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
-            </div>
-            <div class="modal-body" id="filterCategoryContent"></div>
-            <div class="modal-footer">
-              <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
-              <button class="btn btn-primary" onclick="applyCategoryFilter(); reloadPage();" type="button">Применить</button>
-            </div>
-          </div>
+<body>
+<!--Модальные окна фильтров-->
+<div class="button-container">
+  <!--Модальное окна для выбора фильтра-->
+  <div aria-hidden="true" class="modal fade" id="filterCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Фильтр категорий</h5>
+          <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
         </div>
-      </div>
-      <!--Модальное окна для выбора диапазона фильтра-->
-      <div aria-hidden="true" class="modal fade" id="newModal" style="z-index: 1091;" tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Фильтр категорий</h5>
-              <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
-            </div>
-            <div class="modal-body">
-              <p>Выберите действие:</p>
-              <!-- Три кнопки -->
-              <button class="btn btn-outline-primary" id="btnAction1" onclick="openCategoryFilterModal1('range')">Фильтр по диапазону </button>
-              <button class="btn btn-outline-primary" id="btnAction2" onclick="openCategoryFilterModal1('month')">Фильтр по месяцу </button>
-              <button class="btn btn-outline-primary" id="btnAction3" onclick="openCategoryFilterModal1('year')">Фильтр по году </button>
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
-            </div>
-          </div>
+        <div class="modal-body" id="filterCategoryContent"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
+          <button class="btn btn-primary" onclick="applyCategoryFilter(); reloadPage();" type="button">Применить
+          </button>
         </div>
       </div>
     </div>
-    <!--Диаграмма доходов/расходов, модальные окна добавления и редактирования категорий-->
-    <div class="container mt-4">
-      <!-- Диаграмма доходов/расходов -->
-      <div class="diagrams-container">
-        <div class="diagram active" id="incomeDiagram">
-          <div class="donut-chart" onclick="swapDiagrams()" style="background:
+  </div>
+  <!--Модальное окна для выбора диапазона фильтра-->
+  <div aria-hidden="true" class="modal fade" id="newModal" style="z-index: 1091;" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Фильтр категорий</h5>
+          <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+        </div>
+        <div class="modal-body">
+          <p>Выберите действие:</p>
+          <!-- Три кнопки -->
+          <button class="btn btn-outline-primary" id="btnAction1" onclick="openCategoryFilterModal1('range')">Фильтр по
+            диапазону
+          </button>
+          <button class="btn btn-outline-primary" id="btnAction2" onclick="openCategoryFilterModal1('month')">Фильтр по
+            месяцу
+          </button>
+          <button class="btn btn-outline-primary" id="btnAction3" onclick="openCategoryFilterModal1('year')">Фильтр по
+            году
+          </button>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!--Диаграмма доходов/расходов, модальные окна добавления и редактирования категорий-->
+<div class="container mt-4">
+  <!-- Диаграмма доходов/расходов -->
+  <div class="diagrams-container">
+    <div class="diagram active" id="incomeDiagram">
+      <div class="donut-chart" onclick="swapDiagrams()" style="background:
                     {% if income_categories %}
                         conic-gradient(
                             {% for category in income_categories %}
@@ -271,23 +278,32 @@
                     {% else %}
                         #ccc;
                     {% endif %};">
-            <div class="chart-center-text">
-              <dl>Доходы: {{ total_income|default:"0" }}₽</dl>
-              <dl>
-                <button class="btn btn-primary" id="openNewModalBtn1" type="button">Фильтр категорий</button>
-              </dl>
-              <dl>
-                <button class="btn btn-primary" id="createCategoryBtn1">+ Создать категорию</button>
-              </dl>
-            </div>
-            <div class="categories"> {% for category in income_categorie %}
-              <div class="category income-category" data-id="{{ category.id }}" onclick="openEditCategoryModal('{{ category.id }}')" style="background-color: {{ category.color }};"> {{ category.name }}
-                <div class="category-value">{{ category.value }}₽</div>
-              </div> {% empty %} {% endfor %} </div>
-          </div>
+        <div class="chart-center-text">
+          <dl>Доходы: {{ total_income|default:"0" }} {{ currency_code }}</dl>
+          <dl>
+            <button class="btn btn-primary" id="openNewModalBtn1" type="button">Фильтр категорий</button>
+          </dl>
+          <dl>
+            <button class="btn btn-primary" id="createCategoryBtn1">+ Создать категорию</button>
+          </dl>
         </div>
-        <div class="diagram hidden" id="expenseDiagram">
-          <div class="donut-chart" onclick="swapDiagrams()" style="background:
+        <div class="categories">
+          {% for category in income_categorie %}
+          <div class="category income-category" data-id="{{ category.id }}"
+               onclick="openEditCategoryModal('{{ category.id }}')"
+               style="background-color: {{ category.color }};">
+            {{ category.name }}
+            <div class="category-value">{{ category.value }} {{ currency_code }}</div>
+          </div>
+          {% empty %}
+          <div>Нет категорий доходов</div>
+          {% endfor %}
+        </div>
+
+      </div>
+    </div>
+    <div class="diagram hidden" id="expenseDiagram">
+      <div class="donut-chart" onclick="swapDiagrams()" style="background:
                     {% if expense_categories %}
                         conic-gradient(
                             {% for category in expense_categories %}
@@ -297,75 +313,84 @@
                     {% else %}
                         #ccc;
                     {% endif %};">
-            <div class="chart-center-text">
-              <dl>Расходы: {{ total_expenses|default:"0" }}₽</dl>
-              <dl>
-                <button class="btn btn-primary" id="openNewModalBtn2" type="button">Фильтр категорий</button>
-              </dl>
-              <dl>
-                <button class="btn btn-primary" id="createCategoryBtn2">+ Создать категорию</button>
-              </dl>
-            </div>
-            <div class="categories"> {% for category in expense_categorie %}
-              <div class="category expense-category" data-id="{{ category.id }}" onclick="openEditCategoryModal('{{ category.id }}')" style="background-color: {{ category.color }};"> {{ category.name }}
-                <div class="category-value">{{ category.value }}₽</div>
-              </div> {% empty %} {% endfor %} </div>
+        <div class="chart-center-text">
+          <dl>Расходы: {{ total_expenses|default:"0" }} {{ currency_code }}</dl>
+          <dl>
+            <button class="btn btn-primary" id="openNewModalBtn2" type="button">Фильтр категорий</button>
+          </dl>
+          <dl>
+            <button class="btn btn-primary" id="createCategoryBtn2">+ Создать категорию</button>
+          </dl>
+        </div>
+        <div class="categories">
+          {% for category in expense_categorie %}
+          <div class="category expense-category" data-id="{{ category.id }}"
+               onclick="openEditCategoryModal('{{ category.id }}')"
+               style="background-color: {{ category.color }};">
+            {{ category.name }}
+            <div class="category-value">{{ category.value }} {{ currency_code }}</div>
           </div>
+          {% empty %}
+          <div>Нет категорий расходов</div>
+          {% endfor %}
         </div>
+
       </div>
-      <!-- Модальное окно для добавления категории -->
-      <div class="modal" id="createCategoryModal">
-        <div class="modal-content"> <span class="close" id="closeModal">&times;</span>
-          <h2>Добавить новую категорию</h2>
-          <form id="categoryForm" method="POST"> {% csrf_token %}
-            <label for="categoryName">Название категории:</label>
-            <input id="categoryName" name="name" required type="text">
-            <div id="categoryError" class="error-message" style="display: none; color: red;"></div>
-            <br>
-            <br>
-            <label for="categoryColor">Цвет:</label>
-            <input id="categoryColor" name="color" required type="color">
-            <br>
-            <br>
-            <label for="is_expense">Это расход?</label>
-            <input id="is_expense" name="is_expense" type="checkbox">
-            <br>
-            <button type="submit">Добавить категорию</button>
-          </form>
-        </div>
-      </div>
-<!-- Модальное окно для редактирования категории -->
-<div class="modal" id="editCategoryModal">
-  <div class="modal-content">
-    <span class="close" id="closeEditModal">&times;</span>
-    <h2>Редактировать категорию</h2>
-    <form id="editCategoryForm" method="POST">
-      {% csrf_token %}
-      <label for="editCategoryName">Название категории:</label>
-      <input id="editCategoryName" name="name" required type="text">
-      <br><br>
-
-      <label for="editCategoryColor">Цвет:</label>
-      <input id="editCategoryColor" name="color" required type="color">
-      <br><br>
-
-      <!-- Добавляем выбор типа категории (доход или расход) -->
-      <label for="editCategoryType">Тип категории:</label>
-      <select id="editCategoryType" name="is_expense">
-        <option value="True">Расход</option>
-        <option value="False">Доход</option>
-      </select>
-      <br><br>
-
-      <button id="saveCategoryBtn" type="submit">Сохранить изменения</button>
-      <button id="deleteCategoryBtn" type="button">Удалить категорию</button>
-    </form>
-  </div>
-</div>
-
-
     </div>
-    <script>
+  </div>
+  <!-- Модальное окно для добавления категории -->
+  <div class="modal" id="createCategoryModal">
+    <div class="modal-content"><span class="close" id="closeModal">&times;</span>
+      <h2>Добавить новую категорию</h2>
+      <form id="categoryForm" method="POST"> {% csrf_token %}
+        <label for="categoryName">Название категории:</label>
+        <input id="categoryName" name="name" required type="text">
+        <div class="error-message" id="categoryError" style="display: none; color: red;"></div>
+        <br>
+        <br>
+        <label for="categoryColor">Цвет:</label>
+        <input id="categoryColor" name="color" required type="color">
+        <br>
+        <br>
+        <label for="is_expense">Это расход?</label>
+        <input id="is_expense" name="is_expense" type="checkbox">
+        <br>
+        <button type="submit">Добавить категорию</button>
+      </form>
+    </div>
+  </div>
+  <!-- Модальное окно для редактирования категории -->
+  <div class="modal" id="editCategoryModal">
+    <div class="modal-content">
+      <span class="close" id="closeEditModal">&times;</span>
+      <h2>Редактировать категорию</h2>
+      <form id="editCategoryForm" method="POST">
+        {% csrf_token %}
+        <label for="editCategoryName">Название категории:</label>
+        <input id="editCategoryName" name="name" required type="text">
+        <br><br>
+
+        <label for="editCategoryColor">Цвет:</label>
+        <input id="editCategoryColor" name="color" required type="color">
+        <br><br>
+
+        <!-- Добавляем выбор типа категории (доход или расход) -->
+        <label for="editCategoryType">Тип категории:</label>
+        <select id="editCategoryType" name="is_expense">
+          <option value="True">Расход</option>
+          <option value="False">Доход</option>
+        </select>
+        <br><br>
+
+        <button id="saveCategoryBtn" type="submit">Сохранить изменения</button>
+        <button id="deleteCategoryBtn" type="button">Удалить категорию</button>
+      </form>
+    </div>
+  </div>
+
+
+</div>
+<script>
   function reloadPage() {
     setTimeout(function() {
       location.reload();
@@ -802,7 +827,7 @@ document.addEventListener("DOMContentLoaded", function () {
         openEditCategoryModal(this.dataset.name);
       });
     });
-    </script>
-  </body>
+</script>
+</body>
 
 </html> {% endblock %}
