@@ -1,7 +1,8 @@
-from datetime import timezone
+from decimal import Decimal
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.utils import timezone
 
 
 class CustomUserManager(BaseUserManager):
@@ -64,16 +65,19 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+
 class Currency(models.Model):
     code = models.CharField(max_length=3, unique=True)  # Код валюты (например, USD, EUR)
-    name = models.CharField(max_length=50)             # Название валюты (например, "Доллар США")
-    rate_to_base = models.DecimalField(                # Курс обмена к базовой валюте
+    name = models.CharField(max_length=50)  # Название валюты (например, "Доллар США")
+    rate_to_base = models.DecimalField(  # Курс обмена к базовой валюте
         max_digits=10, decimal_places=4, default=1.0,
         help_text="Курс относительно базовой валюты (например, RUB=1.0)"
     )
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+
 # Модель счетов
 class Account(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accounts')
@@ -82,9 +86,9 @@ class Account(models.Model):
     currency = models.ForeignKey(
         Currency,
         on_delete=models.SET_NULL,  # При удалении счета валюта останется в базе, но сбрасывается на NULL
-        null=True,                  # Разрешаем пустое значение для валюты
-        blank=True,                 # Разрешаем пустое значение в формах
-        default=1                   # Можно указать ID валюты RUB, если она обязательна
+        null=True,  # Разрешаем пустое значение для валюты
+        blank=True,  # Разрешаем пустое значение в формах
+        default=1  # Можно указать ID валюты RUB, если она обязательна
     )
 
     class Meta:
@@ -92,7 +96,6 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.currency.code if self.currency else 'Без валюты'})"
-
 
 
 # Модель транзакций
@@ -123,17 +126,27 @@ class Transaction(models.Model):
     def filter_by_range(user, start_date, end_date):
         return Transaction.objects.filter(user=user, transaction_date__range=(start_date, end_date))
 
+    def get_amount_in_currency(self, target_currency):
+        if self.account.currency == target_currency:
+            return self.amount
+        if self.account.currency and target_currency:
+            conversion_rate = Decimal(self.account.currency.rate_to_base) / Decimal(target_currency.rate_to_base)
+            return self.amount * conversion_rate
+        return self.amount
+
 
 class Transfer(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, default="1")
     source_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='outgoing_transfers')
     target_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='incoming_transfers')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    transaction_date = models.DateField()
+    transaction_date = models.DateField(default=timezone.now)
     description = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"Transfer {self.id}: {self.amount} from {self.source_account.name} to {self.target_account.name}"
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     default_currency = models.ForeignKey(Currency, on_delete=models.SET_NULL, null=True, blank=True)

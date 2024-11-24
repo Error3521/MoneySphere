@@ -1,19 +1,24 @@
 import json
 import logging
+from collections import defaultdict
 from decimal import Decimal
 from difflib import SequenceMatcher
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Sum
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.views.generic.edit import CreateView
 
 from .forms import CustomUserCreationForm, CategoryForm, TransactionForm, AccountForm
-from .models import Category, Transaction, Currency, Account
-from .models import Transfer
+from .models import Category, Transaction, Currency, Account, Transfer, User, Profile
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -50,10 +55,12 @@ def is_name_similar(new_name, existing_names, threshold=0.8):
 @login_required
 def categories_combined_view(request):
     user = request.user
-
-    # Получаем категории пользователя
+    target_currency = user.profile.default_currency  # Валюта профиля
     categories = Category.objects.filter(user=user)
+    transactions = Transaction.objects.filter(user=user)
 
+    # Инициализация словаря category_totals
+    category_totals = defaultdict(lambda: {'value': 0, 'transactions': []})
     # Разделение категорий на доходы и расходы
     income_categories = categories.filter(is_expense=False)
     expense_categories = categories.filter(is_expense=True)
@@ -61,42 +68,71 @@ def categories_combined_view(request):
     # Расчёт общей суммы значений для каждой группы
     total_income = sum(cat.value for cat in income_categories)
     total_expenses = sum(cat.value for cat in expense_categories)
-
-    # Формирование данных для диаграмм
     def prepare_chart_data(categories, total_value):
         chart_data = []
         start_percentage = 0
         for category in categories:
-            percentage = round((category.value / total_value * 100) if total_value > 0 else 0)
+            percentage = round((category['value'] / total_value * 100) if total_value > 0 else 0)
             end_percentage = start_percentage + percentage
             chart_data.append({
-                'name': category.name,
-                'value': category.value,
+                'name': category['name'],
+                'value': category['value'],
                 'percentage': percentage,
-                'color': category.color,
+                'color': category['color'],
                 'start_percentage': start_percentage,
                 'end_percentage': end_percentage,
             })
             start_percentage = end_percentage
         return chart_data
+    # Обработка транзакций
+    for transaction in transactions:
+        category = transaction.category
+        amount_in_target_currency = transaction.get_amount_in_currency(target_currency)
+        category_totals[category]['value'] += amount_in_target_currency
+        category_totals[category]['transactions'].append(transaction)
+
+    # Убедимся, что все категории учтены
+    for category in categories:
+        if category not in category_totals:
+            category_totals[category] = {'value': 0, 'transactions': []}
+
+    # Подготовка данных для шаблона
+    income_categories = []
+    expense_categories = []
+    total_income = 0
+    total_expenses = 0
+
+    for category, data in category_totals.items():
+        if category.is_expense:
+            total_expenses += data['value']
+            expense_categories.append({
+                'id': category.id,
+                'name': category.name,
+                'value': round(data['value'], 2),
+                'color': category.color,
+            })
+        else:
+            total_income += data['value']
+            income_categories.append({
+                'id': category.id,
+                'name': category.name,
+                'value': round(data['value'], 2),
+                'color': category.color,
+            })
 
     income_data = prepare_chart_data(income_categories, total_income)
     expense_data = prepare_chart_data(expense_categories, total_expenses)
 
-    # Получение кода валюты из профиля
-    currency_code = user.profile.default_currency.code if user.profile.default_currency else ""
-
     # Передача данных в шаблон
     return render(request, 'ms/home/initial/categories/categories.html', {
+        'income_categorie': income_categories,
+        'expense_categorie': expense_categories,
+        'total_income': round(total_income, 2),
+        'total_expenses': round(total_expenses, 2),
         'income_categories': income_data,
         'expense_categories': expense_data,
-        'total_expenses': total_expenses,
-        'total_income': total_income,
-        'income_categorie': income_categories,  # Передаем оригинальные категории доходов
-        'expense_categorie': expense_categories,  # Передаем оригинальные категории расходов
-        'currency_code': currency_code,  # Передаем код валюты
+        'currency_code': target_currency.code,
     })
-
 
 
 @login_required
@@ -532,11 +568,6 @@ def update_account(request, account_id):
     return render(request, 'ms/home/initial/accounts/account_form_partial.html', {'form': form})
 
 
-from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-
-
 @require_http_methods(["POST"])
 def delete_account(request, account_id):
     account = get_object_or_404(Account, id=account_id, user=request.user)
@@ -579,7 +610,6 @@ def convert_currency(request):
         return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
-# Обновлённый метод transfer_between_accounts
 def transfer_between_accounts(request):
     if request.method == 'POST':
         try:
@@ -791,11 +821,6 @@ def update_currency(request):
     return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
 
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from .models import User, Profile
-
-
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -807,15 +832,13 @@ def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
 
 
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-
-
 @login_required
 def current_currency(request):
     profile = request.user.profile  # Получаем профиль пользователя
     currency = profile.default_currency.code if profile.default_currency else None
     return JsonResponse({'currency': currency})
+
+
 def your_view(request):
     current_currency = request.user.profile.default_currency
     return render(request, 'your_template.html', {'current_currency': current_currency})
