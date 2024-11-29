@@ -44061,8 +44061,9 @@ a.u-link.u-text-hover-grey-90:hover {
 
 
 
- .u-footer {
+.u-footer {
   background-image: none;
+  box-shadow: -0px -4px 51rem 7.1px hsl(16.08deg 91.27% 55.1%);
 }
 
 .u-footer .u-sheet-1 {

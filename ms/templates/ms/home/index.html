@@ -82,10 +82,17 @@
                   class="u-button-style u-nav-link u-text-active-white u-text-hover-palette-2-base u-text-white"
                   href="{% url 'categories' %}" style="padding: 10px 20px;">Главная</a>
           </li>
-          <li class="u-nav-item"><a
-                  class="u-button-style u-nav-link u-text-active-white u-text-hover-palette-2-base u-text-white"
-                  href="{% url 'logout' %}" style="padding: 10px 20px;">Выход</a>
+          <li class="u-nav-item">
+            <a class="u-button-style u-nav-link u-text-active-white u-text-hover-palette-2-base u-text-white" href="#"
+               onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+               style="padding: 10px 20px;">
+              Выход
+            </a>
+            <form action="{% url 'logout' %}" id="logout-form" method="post" style="display: none;">
+              {% csrf_token %}
+            </form>
           </li>
+
           {% else %}
           <li class="u-nav-item"><a
                   class="u-button-style u-nav-link u-text-active-white u-text-hover-palette-2-base u-text-white"
@@ -107,11 +114,18 @@
               {% csrf_token %}
               <li class="u-nav-item"><a class="u-button-style u-nav-link"
                                         href="{% url 'categories' %}">Главная</a>
+              <li class="u-nav-item">
+                <a class="u-button-style u-nav-link u-text-active-white u-text-hover-palette-2-base u-text-white"
+                   href="#"
+                   onclick="event.preventDefault(); document.getElementById('logout-form2').submit();"
+                   style="padding: 10px 20px;">
+                  Выход
+                </a>
+                <form action="{% url 'logout' %}" id="logout-form2" method="post" style="display: none;">
+                  {% csrf_token %}
+                </form>
               </li>
-              <form action="{% url 'logout' %}" method="post">
-                <li class="u-nav-item"><a class="u-button-style u-nav-link" href="{% url 'logout' %}" method="post">Выход</a>
-                </li>
-              </form>
+
               {% else %}
               <li class="u-nav-item"><a class="u-button-style u-nav-link" href="{% url 'login' %}">Вход</a>
               </li>
