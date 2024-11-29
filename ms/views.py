@@ -26,8 +26,14 @@ logger = logging.getLogger(__name__)
 
 class SignUp(CreateView):
     form_class = CustomUserCreationForm
-    success_url = reverse_lazy("login")
     template_name = "registration/signup.html"
+    success_url = reverse_lazy("login")
+
+    def form_invalid(self, form):
+        # Лог ошибок для отладки
+        for field, errors in form.errors.items():
+            print(f"Поле {field}: {', '.join(errors)}")
+        return super().form_invalid(form)
 
 
 @login_required
@@ -71,6 +77,7 @@ def categories_combined_view(request):
     # Расчёт общей суммы значений для каждой группы
     total_income = sum(cat.value for cat in income_categories)
     total_expenses = sum(cat.value for cat in expense_categories)
+
     def prepare_chart_data(categories, total_value):
         chart_data = []
         start_percentage = 0
@@ -87,6 +94,7 @@ def categories_combined_view(request):
             })
             start_percentage = end_percentage
         return chart_data
+
     # Обработка транзакций
     for transaction in transactions:
         category = transaction.category
